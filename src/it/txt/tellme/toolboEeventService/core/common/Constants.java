@@ -42,12 +42,22 @@ public class Constants {
 	    public static final String SESSION_ID="sessionId";
 	    public static final String SIMULATOR_ID="simulatorId";
 	    public static final String USER_ID = "userId";
+	    public static final String ISSUE_ID="issueId";
+	    public static final String DESCRIPTION="description";
+	    public static final String ISSUE_OPERATION="opIssue";
+	    public static final String UPDATE_DESCRIPTION="updateDescription";
+	    public static final String UPDATE_QUESTIONNAIRE="updateQuestionnaire";
+	    public static final String GET_IMAGES="getImages";
+	    
 	    
 	    
 	    public static final String SESSION_DATA_INIT="sessionData";
 	    
 	    public static final String PILOT_ROLE="pilot";
 		public static final String INSTRUCTOR_ROLE="instructor";
+		public static final String NONE="none";
+		
+		public static final String PICTURES_FOLDER_PATH="C:\\Users\\Administrator\\workspace\\ToolBoxEventService\\pictures\\";
 	    
 }
 

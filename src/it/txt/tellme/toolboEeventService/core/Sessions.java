@@ -37,18 +37,21 @@ public class Sessions extends ServerResource{
 		if(queryMap.size()==1 && queryMap.containsKey(Constants.SESSION_ID))
 		{
 			//get the session data
+			System.out.println("get session data");
 			String sesId = queryMap.get(Constants.SESSION_ID);
 			repReturn = getSessionData(sesId);
 		}
 		else if(queryMap.size()==1 && queryMap.containsKey(Constants.USER_ID))
 		{
 			//get list of sessions of a user
+			System.out.println("Sessions of a user");
 			String userId = queryMap.get(Constants.USER_ID);
 			repReturn = getAllSessionOfUser(userId);
 		}
 		else if(queryMap.size()==2 && queryMap.containsKey(Constants.SESSION_DATA_INIT) && queryMap.containsKey(Constants.SESSION_ID))
 		{
 			//get informations of a session and relative pilot, instructor and simulator
+			System.out.println("Info of the session");
 			String sesId = queryMap.get(Constants.SESSION_ID);
 			repReturn = getAllSessionData(sesId);
 		}
