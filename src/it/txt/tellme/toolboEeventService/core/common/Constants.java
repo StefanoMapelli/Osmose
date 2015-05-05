@@ -43,22 +43,41 @@ public class Constants {
 	    public static final String SIMULATOR_ID="simulatorId";
 	    public static final String USER_ID = "userId";
 	    public static final String ISSUE_ID="issueId";
+	    public static final String SYSTEM_NAME="systemName";
 	    public static final String DESCRIPTION="description";
 	    public static final String ISSUE_OPERATION="opIssue";
 	    public static final String UPDATE_DESCRIPTION="updateDescription";
 	    public static final String UPDATE_QUESTIONNAIRE="updateQuestionnaire";
 	    public static final String GET_IMAGES="getImages";
+	    public static final String GET_AUDIOS="getAudio";
+	    public static final String DELETE_ISSUE="deleteIssue";
+	    public static final String PUT_UNDER_MAINTENANCE="putUnderMaintenance";
+	    
+	    public static final String TYPE_OPERATION="opType";
+	    public static final String GET_SEVERITIES = "getSeverities";
+	    public static final String GET_TYPES = "getTypes";
+	    public static final String GET_PRIORITIES = "getPriorities";
+	    public static final String GET_SYSTEMS = "getSystems";
 	    
 	    
 	    
 	    public static final String SESSION_DATA_INIT="sessionData";
 	    
+	    //id of the not classified system
+	    public static final String NOT_CLASSIFIED = "7";
 	    public static final String PILOT_ROLE="pilot";
 		public static final String INSTRUCTOR_ROLE="instructor";
 		public static final String NONE="none";
+		public static final String PRIORITY_LOW="Low";
+		public static final String TYPE_GENERIC = "Generic";
+		public static final String SEVERITY_MODERATE = "Moderate";
+		public static final String STATE_OPEN="open";
 		
-		public static final String PICTURES_FOLDER_PATH="C:\\Users\\Administrator\\workspace\\ToolBoxEventService\\pictures\\";
-	    
+		public static final String PICTURES_FOLDER_PATH="C:\\OsmoseMedia\\pictures\\";
+		public static final String AUDIO_FOLDER_PATH="C:\\OsmoseMedia\\audios\\";
+		
+		
+		
 }
 
 

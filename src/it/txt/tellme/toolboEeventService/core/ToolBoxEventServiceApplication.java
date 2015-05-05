@@ -63,9 +63,11 @@ public class ToolBoxEventServiceApplication extends Application
         Router router = new Router(getContext());
     	
     	//osmose
+        router.attach("/users", Users.class);
     	router.attach("/issues", Issues.class);
     	router.attach("/sessions", Sessions.class);
     	router.attach("/simulators", Simulators.class);
+    	router.attach("/types", Types.class);
     	
     	return router;
     }

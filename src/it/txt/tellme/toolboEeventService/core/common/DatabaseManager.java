@@ -12,8 +12,6 @@ import java.sql.*;
 
 public class DatabaseManager {
 	
-	private static Connection conn ;
-	
 	
 	/**
 	 * Connection to the mysql db of Osmose
@@ -33,7 +31,7 @@ public class DatabaseManager {
 		 try 
 		 { 
 			 Class.forName(driver).newInstance();
-			 conn = DriverManager.getConnection(url+dbName,userName,password);
+			 Connection conn = DriverManager.getConnection(url+dbName,userName,password);
 			 System.out.print("-connection db OSMOSE opened\n");
 			 return conn;
 		 } 
@@ -50,7 +48,7 @@ public class DatabaseManager {
 	  * Disconnection from the mysql db of Osmose
 	  * 
 	  */
-	 public static void disconnectFromDatabase()
+	 public static void disconnectFromDatabase(Connection conn)
 	 {
 		try 
 		{

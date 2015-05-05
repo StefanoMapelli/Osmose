@@ -7,6 +7,8 @@ import it.txt.tellme.toolboEeventService.core.common.DatabaseManager;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.Connection;
@@ -50,6 +52,7 @@ public class Issues extends ServerResource{
 		System.out.println("Dispatch get");
 		
 		Map<String, String> queryMap = getQuery().getValuesMap();
+		System.out.println("Size of parameter map:................"+queryMap.size());
 
 		if(queryMap.size()==1 && queryMap.containsKey(Constants.SESSION_ID))
 		{
@@ -74,6 +77,21 @@ public class Issues extends ServerResource{
 				repReturn = getIssueImages(issueId);
 				System.out.println("Get images of the issue");
 			}
+			//get audio of the issue
+			if(queryMap.get(Constants.ISSUE_OPERATION).compareTo(Constants.GET_AUDIOS)==0)
+			{	
+				String issueId = queryMap.get(Constants.ISSUE_ID);
+				repReturn = getIssueAudio(issueId);
+				System.out.println("Get audio of the issue");
+			}
+		}
+		else if(queryMap.size()==2 && queryMap.containsKey(Constants.SESSION_ID) && queryMap.containsKey(Constants.SYSTEM_NAME))
+		{
+			//get issues of the specified system and session
+			String sesId=queryMap.get(Constants.SESSION_ID);
+			String systemName=queryMap.get(Constants.SYSTEM_NAME);
+			repReturn = getIssuesWithSystemAndSession(sesId, systemName);
+			System.out.println("Get issues with specified system and session");
 		}
 		else
 		{
@@ -83,8 +101,8 @@ public class Issues extends ServerResource{
 		return repReturn;
 	}
 	
-	
-	
+
+
 	/**
 	 * POST method
 	 */
@@ -116,6 +134,18 @@ public class Issues extends ServerResource{
 				repReturn = updateQuestionnaireOfIssue(entity);
 				System.out.println("Update description");
 			}
+			if(queryMap.get(Constants.ISSUE_OPERATION).compareTo(Constants.DELETE_ISSUE)==0)
+			{
+				//delete an issue
+				repReturn = deleteIssue(entity);
+				System.out.println("Delete issue");
+			}
+			if(queryMap.get(Constants.ISSUE_OPERATION).compareTo(Constants.PUT_UNDER_MAINTENANCE)==0)
+			{
+				//put under maintenance an issue
+				repReturn = putUnderMaintenanceIssue(entity);
+				System.out.println("Put under maintenance issue");
+			}
 		}
 		else
 		{
@@ -125,6 +155,85 @@ public class Issues extends ServerResource{
 		return repReturn;
 	}
 	
+
+
+	
+	private Representation putUnderMaintenanceIssue(Representation entity) 
+	{
+		System.out.println("Put under maintenance");
+		
+		Representation repReturn = null;
+		// Declare the JDBC objects.
+		Connection conn = null;
+		try{
+			JsonParser jsonParser = new JsonParser();
+			JsonObject jsonIssue = jsonParser.parse(entity.getText()).getAsJsonObject();
+			
+			//connection to db
+			conn=DatabaseManager.connectToDatabase();
+			
+			//update the state of the issue with open
+			String query="UPDATE `osmose`.`issues` SET `state` = ? WHERE `issues`.`id_issue` = ?";
+		
+			PreparedStatement preparedStmt = conn.prepareStatement(query);
+			preparedStmt.setString(1, Constants.STATE_OPEN);
+			preparedStmt.setString(2, jsonIssue.get("issueId").getAsString());
+			preparedStmt.executeUpdate();
+			preparedStmt.close(); 
+	
+			DatabaseManager.disconnectFromDatabase(conn);
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+			setStatus(Status.SERVER_ERROR_INTERNAL);
+			repReturn = new StringRepresentation(e.getMessage());
+		}
+		return repReturn;
+	}
+
+
+
+	/**
+	 * This method delete a specified issue
+	 * @param entity: json with the id of the issue that will be deleted
+	 * @return outcome of the operation
+	 */
+	private Representation deleteIssue(Representation entity) {
+		
+		System.out.println("Issue delete");
+		
+		Representation repReturn = null;
+		// Declare the JDBC objects.
+		Connection conn = null;
+		try{
+			JsonParser jsonParser = new JsonParser();
+			JsonObject jsonIssue = jsonParser.parse(entity.getText()).getAsJsonObject();
+			
+			//connection to db
+			conn=DatabaseManager.connectToDatabase();
+			
+			//delete an issue
+			String query="DELETE FROM issues WHERE issues.id_issue = ?";
+		
+			PreparedStatement preparedStmt = conn.prepareStatement(query);
+			preparedStmt.setString(1, jsonIssue.get("issueId").getAsString());
+			preparedStmt.executeUpdate();
+			preparedStmt.close(); 
+		
+			System.out.println("Issue delete completed");
+			DatabaseManager.disconnectFromDatabase(conn);
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+			setStatus(Status.SERVER_ERROR_INTERNAL);
+			repReturn = new StringRepresentation(e.getMessage());
+		}
+		return repReturn;
+	}
+
+
 
 
 	/**
@@ -158,6 +267,7 @@ public class Issues extends ServerResource{
 			preparedStmt.close(); 
 		
 			System.out.println("Update description completed");
+			DatabaseManager.disconnectFromDatabase(conn);
 		}
 		catch(Exception e)
 		{
@@ -165,7 +275,6 @@ public class Issues extends ServerResource{
 			setStatus(Status.SERVER_ERROR_INTERNAL);
 			repReturn = new StringRepresentation(e.getMessage());
 		}
-		DatabaseManager.disconnectFromDatabase();
 		return repReturn;
 	}
 
@@ -173,7 +282,7 @@ public class Issues extends ServerResource{
 
 	/**
 	 * This method add an issue with basic information
-	 * @param entity: a json which contains description, hw_sw type, Caution_Warning type and datetime of raising
+	 * @param entity: a json which contains description, hw_sw type, Caution_Warning type and datetime of raising, images and audio comments
 	 * @return the outcome of the operation
 	 */
 	private Representation addIssue(Representation entity)
@@ -208,9 +317,10 @@ public class Issues extends ServerResource{
 			      		+ " `type`,"
 			      		+ " `priority`,"
 			      		+ " `severity`,"
-			      		+ " `session`)"
+			      		+ " `session`,"
+			      		+ " `user_raiser`)"
 			      		+ " VALUES "
-			      		+ "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+			      		+ "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 			 
 			      // create the mysql insert preparedstatement
 			      PreparedStatement preparedStmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
@@ -229,14 +339,15 @@ public class Issues extends ServerResource{
 			      preparedStmt.setString(5, jsonIssue.get("raise_time").getAsString() + "_ses" + jsonIssue.get("session").getAsString() + "_" + jsonIssue.get("hw_sw").getAsString() + "_" + jsonIssue.get("cau_war").getAsString());
 			      preparedStmt.setString(6, jsonIssue.get("hw_sw").getAsString());
 			      preparedStmt.setString(7, jsonIssue.get("cau_war").getAsString());
-			      preparedStmt.setString(8, "open");
-			      preparedStmt.setNull(9, java.sql.Types.INTEGER);
+			      preparedStmt.setString(8, "new");
+			      preparedStmt.setString(9, Constants.NOT_CLASSIFIED);
 			      preparedStmt.setNull(10, java.sql.Types.INTEGER);
 			      preparedStmt.setNull(11, java.sql.Types.INTEGER);
-			      preparedStmt.setNull(12, java.sql.Types.VARCHAR);
-			      preparedStmt.setNull(13, java.sql.Types.VARCHAR);
-			      preparedStmt.setNull(14, java.sql.Types.VARCHAR);
+			      preparedStmt.setString(12, Constants.TYPE_GENERIC);
+			      preparedStmt.setString(13, Constants.PRIORITY_LOW);
+			      preparedStmt.setString(14, Constants.SEVERITY_MODERATE);
 			      preparedStmt.setString(15, jsonIssue.get("session").getAsString());
+			      preparedStmt.setString(16, jsonIssue.get("id_user").getAsString());
 			      
 			      
 			      // execute the preparedstatement
@@ -247,16 +358,34 @@ public class Issues extends ServerResource{
 			      rs=preparedStmt.getGeneratedKeys();
 			      rs.next();
 			      
-			    //insert image of the issue
+			    //insert images of the issue
 			      if(rs!=null && jsonIssue.get("images")!=null)
 			      {
 			    	  JsonArray images=jsonIssue.get("images").getAsJsonArray();
-			    	  
-			    	  for(int i=0;i<images.size();i++)
+			    	  if(images.get(0).getAsString().compareTo("empty")!=0)
 			    	  {
-			    		  addImageToAnIssue(rs.getString(1), images.get(i).getAsString(), i) ;
+			    		  for(int i=0;i<images.size();i++)
+			    		  {
+			    			  addImageToAnIssue(rs.getString(1), images.get(i).getAsString(), i) ;
+			    		  }
 			    	  }
 			      }
+			      
+			    //insert audio comments of the issue
+			      if(rs!=null && jsonIssue.get("audios")!=null)
+			      {
+			    	  JsonArray audios=jsonIssue.get("audios").getAsJsonArray();
+			    	  if(audios.get(0).getAsString().compareTo("empty")!=0)
+			    	  {
+			    		  for(int i=0;i<audios.size();i++)
+			    		  {
+			    			  System.out.println("inserisco:  "+i);
+			    			  addAudioCommentToAnIssue(rs.getString(1), audios.get(i).getAsString(), i) ;
+			    		  }
+			    	  }
+			      }
+			      
+			      DatabaseManager.disconnectFromDatabase(conn);
 			    	  
 			}catch (Exception e) {
 				
@@ -268,13 +397,76 @@ public class Issues extends ServerResource{
 				if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
 			}
 		}
-		
-		DatabaseManager.disconnectFromDatabase();
 		return repReturn;
 	}
 	
+	
+
 	/**
-	 * This method add an image associated with an issue in the db
+	 * This method add an issue comment associated to an issue in the db
+	 * @param idIssue: id of the issue
+	 * @param audioBase64: audio comment in base64
+	 * @param index: index of the comment for the issue
+	 * @return true if the insert have success, false instead
+	 */
+	private boolean addAudioCommentToAnIssue(String idIssue, String audioBase64, int index) {
+		
+		System.out.println("start audio insert");
+		if(idIssue!=null && audioBase64!=null)
+		{	        
+			try
+			{
+				String audioData =audioBase64.substring(audioBase64.indexOf(",")+1);
+				
+				String typeAudio =audioBase64.substring(0,audioBase64.indexOf(";"));
+				typeAudio=typeAudio.substring(typeAudio.indexOf("/")+1);
+				
+				byte[] audioBytes = Base64.decodeBase64(audioData.getBytes());
+
+				String audioPath=Constants.AUDIO_FOLDER_PATH+"audioCommentIssue"+idIssue+"-"+index+"."+typeAudio;
+				
+				FileOutputStream osf = new FileOutputStream(new File(audioPath)); 
+				osf.write(audioBytes); 
+				osf.flush(); 
+				osf.close();
+				
+				Connection conn=DatabaseManager.connectToDatabase();
+				PreparedStatement preparedStmt;
+				String query = "INSERT INTO `audios`"
+			      		+ " (`id_audio`,"
+			      		+ " `audio_path`,"
+			      		+ " `issue`)"
+			      		+ " VALUES "
+			      		+ "(?,?,?)";
+				
+				preparedStmt=conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+			    preparedStmt.setNull(1, java.sql.Types.INTEGER);
+				preparedStmt.setString(2, audioPath);
+			    preparedStmt.setString(3, idIssue);
+			    
+			    preparedStmt.execute();
+			    System.out.println("end: Audio inserted");
+			}
+			catch(Exception e)
+			{
+				e.printStackTrace();
+				setStatus(Status.SERVER_ERROR_INTERNAL);
+				return false;
+			}
+		}
+		else
+		{
+			return false;
+		}
+		
+		return true;
+		
+	}
+
+
+
+	/**
+	 * This method add an image associated to an issue in the db
 	 * @param idIssue: id of the issue of the photo
 	 * @param image: photo of the issue in base64
 	 * @param index: index of the image in the issue
@@ -328,6 +520,54 @@ public class Issues extends ServerResource{
 		
 		return true;
 	}		
+	
+	
+	/**
+	 * This method return all the issues with the specified system of the specified session. Return a JSON
+	 * @param sesId: id of the session
+	 * @param systemName: name of the system 
+	 * @return a JSON with a list of all the issues
+	 */
+	private Representation getIssuesWithSystemAndSession(String sesId, String systemName) {
+		
+		ResultSet rs = null;
+		Representation repReturn = null;
+		// Declare the JDBC objects.
+
+		try {
+			//connection to db
+			Connection conn=DatabaseManager.connectToDatabase();
+						
+			//query to find issues of the specified session
+			String query = "SELECT issues.id_issue, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name FROM issues, users, systems WHERE users.id_user=issues.user_raiser AND systems.id_system=issues.system AND systems.name='"+systemName+"' AND issues.session="+sesId;
+			Statement st = conn.createStatement();
+			rs=st.executeQuery(query);
+			
+			// Iterate through the data in the result set and display it.
+			JsonArray issuesList = new JsonArray();
+			while (rs.next()) {
+				JsonObject jsonIssue = new JsonObject();
+				jsonIssue.addProperty("id_issue", rs.getInt("id_issue"));		
+				jsonIssue.addProperty("raise_time", rs.getString("raise_time"));
+				jsonIssue.addProperty("hw_sw", rs.getString("hw_sw"));
+				jsonIssue.addProperty("cau_war", rs.getString("cau_war"));
+				jsonIssue.addProperty("state", rs.getString("state"));
+				jsonIssue.addProperty("first_name_raiser", rs.getString("first_name"));
+				jsonIssue.addProperty("last_name_raiser", rs.getString("last_name"));
+				jsonIssue.addProperty("system", rs.getString("name"));
+				
+				issuesList.add(jsonIssue);				
+			}
+			repReturn = new JsonRepresentation(issuesList.toString());
+			DatabaseManager.disconnectFromDatabase(conn);
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+		}
+		return repReturn;
+	}
 		
 	
 	
@@ -349,7 +589,7 @@ public class Issues extends ServerResource{
 			Connection conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issues of the specified session
-			String query = "SELECT id_issue, raise_time, hw_sw, cau_war FROM issues WHERE session="+sesId;
+			String query = "SELECT issues.id_issue, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name FROM issues, users, systems WHERE users.id_user=issues.user_raiser AND systems.id_system=issues.system AND issues.session="+sesId;
 			Statement st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
@@ -357,20 +597,26 @@ public class Issues extends ServerResource{
 			JsonArray issuesList = new JsonArray();
 			while (rs.next()) {
 				JsonObject jsonIssue = new JsonObject();
-				jsonIssue.addProperty("id_issue", rs.getInt("id_issue"));			
+				jsonIssue.addProperty("id_issue", rs.getInt("id_issue"));		
 				jsonIssue.addProperty("raise_time", rs.getString("raise_time"));
 				jsonIssue.addProperty("hw_sw", rs.getString("hw_sw"));
 				jsonIssue.addProperty("cau_war", rs.getString("cau_war"));
+				jsonIssue.addProperty("state", rs.getString("state"));
+				jsonIssue.addProperty("first_name_raiser", rs.getString("first_name"));
+				jsonIssue.addProperty("last_name_raiser", rs.getString("last_name"));
+				jsonIssue.addProperty("system", rs.getString("name"));
+				
 				issuesList.add(jsonIssue);				
 			}
 			repReturn = new JsonRepresentation(issuesList.toString());
+			DatabaseManager.disconnectFromDatabase(conn);
+			
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
 			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
 		}
-		DatabaseManager.disconnectFromDatabase();
 		return repReturn;
 	}
 	
@@ -390,7 +636,7 @@ public class Issues extends ServerResource{
 			Connection conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issue with specified id
-			String query = "SELECT * FROM `issues` WHERE issues.id_issue="+issueId;
+			String query = "SELECT * FROM issues, systems WHERE systems.id_system=issues.system AND issues.id_issue="+issueId;
 			Statement st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
@@ -406,7 +652,7 @@ public class Issues extends ServerResource{
 				jsonIssue.addProperty("hw_sw", rs.getString("hw_sw"));
 				jsonIssue.addProperty("cau_war", rs.getString("cau_war"));
 				jsonIssue.addProperty("state", rs.getString("state"));
-				jsonIssue.addProperty("system", rs.getString("system"));
+				jsonIssue.addProperty("system", rs.getString("name"));
 				jsonIssue.addProperty("subsystem", rs.getString("subsystem"));
 				jsonIssue.addProperty("component", rs.getString("component"));
 				jsonIssue.addProperty("type", rs.getString("type"));
@@ -416,13 +662,15 @@ public class Issues extends ServerResource{
 				issuesList.add(jsonIssue);				
 			}
 			repReturn = new JsonRepresentation(issuesList.toString());
-		}catch (Exception e) {
+			DatabaseManager.disconnectFromDatabase(conn);
+			
+		}
+		catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
 			if (rs != null) try { rs.close(); } catch(Exception e) {}
 		}
-		DatabaseManager.disconnectFromDatabase();
 		return repReturn;
 	}
 	
@@ -463,7 +711,7 @@ public class Issues extends ServerResource{
 				imagesList.add(jsonImage);
 			}
 			repReturn = new JsonRepresentation(imagesList.toString());
-
+			DatabaseManager.disconnectFromDatabase(conn);
 		}
 		catch (Exception e) {
 			e.printStackTrace();
@@ -471,7 +719,6 @@ public class Issues extends ServerResource{
 		finally {
 			if (rs != null) try { rs.close(); } catch(Exception e) {}
 		}
-		DatabaseManager.disconnectFromDatabase();
 		return repReturn;
 	}
 	
@@ -522,7 +769,7 @@ System.out.println("Update info with questionnaire");
 			conn=DatabaseManager.connectToDatabase();
 			
 			//upadate the description with new description where issue_id is the specified one
-			String query="UPDATE `osmose`.`issues` SET `type` = ?, `priority` = ?, `severity` = ?, `system` = ?, `subsystem` = ?, `component` = ?  WHERE `issues`.`id_issue` = ?";
+			String query="UPDATE `osmose`.`issues` SET `type` = ?, `priority` = ?, `severity` = ?, `system` = ?, `subsystem` = ?, `component` = ?, `state` = ?  WHERE `issues`.`id_issue` = ?";
 		
 			PreparedStatement preparedStmt = conn.prepareStatement(query);
 			
@@ -542,8 +789,11 @@ System.out.println("Update info with questionnaire");
 			else
 				preparedStmt.setNull(3, java.sql.Types.VARCHAR);
 			
+			
+			String idSystem = getIdSystem(jsonIssue.get("system").getAsString());
+			
 			if(jsonIssue.get("system").getAsString().compareTo(Constants.NONE)!=0)
-				preparedStmt.setString(4, jsonIssue.get("system").getAsString());
+				preparedStmt.setString(4, idSystem);
 			else
 				preparedStmt.setNull(4, java.sql.Types.INTEGER);
 			
@@ -556,16 +806,19 @@ System.out.println("Update info with questionnaire");
 				preparedStmt.setString(6, jsonIssue.get("component").getAsString());
 			else
 				preparedStmt.setNull(6, java.sql.Types.INTEGER);
+			
+			preparedStmt.setString(7, "described");
 
 			if(jsonIssue.get("id_issue").getAsString().compareTo(Constants.NONE)!=0)
-				preparedStmt.setString(7, jsonIssue.get("id_issue").getAsString());
+				preparedStmt.setString(8, jsonIssue.get("id_issue").getAsString());
 			else
-				preparedStmt.setNull(7, java.sql.Types.INTEGER);
+				preparedStmt.setNull(8, java.sql.Types.INTEGER);
 			
 			preparedStmt.executeUpdate();
 			preparedStmt.close(); 
 		
 			System.out.println("Update info completed");
+			DatabaseManager.disconnectFromDatabase(conn);
 		}
 		catch(Exception e)
 		{
@@ -573,11 +826,119 @@ System.out.println("Update info with questionnaire");
 			setStatus(Status.SERVER_ERROR_INTERNAL);
 			repReturn = new StringRepresentation(e.getMessage());
 		}
-		DatabaseManager.disconnectFromDatabase();
 		return repReturn;
 	}
 	
 	
+	private String getIdSystem(String systemName) {
+		
+		ResultSet rs = null;
+		String idSystem= null;
+
+		try {
+			
+			//connection to db
+			Connection conn=DatabaseManager.connectToDatabase();
+						
+			//query to find issue with specified id
+			String query = "SELECT id_system FROM systems WHERE systems.name='"+systemName+"'";
+			Statement st = conn.createStatement();
+			rs=st.executeQuery(query);
+			
+			// Iterate through the data in the result set and display it.
+			while (rs.next()) {
+				idSystem=rs.getString("id_system");					
+			}
+			DatabaseManager.disconnectFromDatabase(conn);
+			
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (rs != null) try { rs.close(); } catch(Exception e) {}
+		}
+		return idSystem;
+		
+	}
+
+
+
+	/**
+	 * This method return a list of audio file of the specified issue in base64 in a json.
+	 * @param issueId: the id of the issue
+	 * @return the list of audio file in a json
+	 */
+	private Representation getIssueAudio(String issueId) {
+		
+		System.out.println("Get Issue Audio");	
+		ResultSet rs = null;
+		Representation repReturn = null;
+		try {
+			//connection to db
+			Connection conn=DatabaseManager.connectToDatabase();
+						
+			//query to find path of the images the issue
+			String query = "SELECT audios.audio_path FROM audios WHERE audios.issue="+issueId;
+			Statement st = conn.createStatement();
+			rs=st.executeQuery(query);
+			
+			JsonArray audioList = new JsonArray();
+			while(rs.next())
+			{
+				//take the path
+				String audioPath=rs.getString("audio_path");
+				System.out.println("audioPath:------------"+audioPath);
+				//encode the audio in base64
+				
+				
+				String ext = audioPath.substring(audioPath.lastIndexOf(".")+1);
+				
+				File file = new File(audioPath);
+				String audioBase64=encodeFileToBase64Binary(file);
+				audioBase64="data:audio/"+ext+";base64,"+audioBase64;
+				
+				JsonObject jsonAudio = new JsonObject();
+				jsonAudio.addProperty("audio", audioBase64);
+				audioList.add(jsonAudio);
+			}
+			repReturn = new JsonRepresentation(audioList.toString());
+			DatabaseManager.disconnectFromDatabase(conn);
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (rs != null) try { rs.close(); } catch(Exception e) {}
+		}
+		return repReturn;
+	}
+	
+	
+	/**
+	 * This method take a file and return the string in base64 of the file
+	 * @param file: the file to be encoded
+	 * @return encoded string in base64
+	 */
+	private String encodeFileToBase64Binary(File file){
+	    try {
+	    	
+	        FileInputStream fileInputStreamReader = new FileInputStream(file);
+	        byte[] bytes = new byte[(int)file.length()];
+	        fileInputStreamReader.read(bytes);
+	        byte[] encoded = Base64.encodeBase64(bytes);
+			String encodedString = new String(encoded);
+	        fileInputStreamReader.close();
+	        return encodedString;
+	        
+	    } catch (FileNotFoundException e) {
+	        e.printStackTrace();
+	    } catch (IOException e) {
+	        e.printStackTrace();
+	    }
+
+	    return null;
+	}
 	
 
 }

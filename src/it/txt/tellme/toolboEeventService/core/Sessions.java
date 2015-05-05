@@ -34,7 +34,14 @@ public class Sessions extends ServerResource{
 		
 		Map<String, String> queryMap = getQuery().getValuesMap();
 
-		if(queryMap.size()==1 && queryMap.containsKey(Constants.SESSION_ID))
+		
+		if(queryMap.size()==0)
+		{
+			//get the session data
+			System.out.println("get all sessions data");
+			repReturn = getAllSessionsData();
+		}
+		else if(queryMap.size()==1 && queryMap.containsKey(Constants.SESSION_ID))
 		{
 			//get the session data
 			System.out.println("get session data");
@@ -64,7 +71,46 @@ public class Sessions extends ServerResource{
 	}
 	
 	
-	
+	/**
+	 * This method return all the sessions data
+	 * @return
+	 */
+	private Representation getAllSessionsData() {
+		ResultSet rs = null;
+		Representation repReturn = null;
+		// Declare the JDBC objects.
+
+		try {
+			//connection to db
+			Connection conn=DatabaseManager.connectToDatabase();
+						
+			//query to find session with specified id
+			String query = "SELECT sessions.id_session, sessions.scheduled_start_time, sessions.scheduled_finish_time FROM sessions ORDER BY sessions.scheduled_start_time";
+			Statement st = conn.createStatement();
+			rs=st.executeQuery(query);
+			
+			// Iterate through the data in the result set and display it.
+			JsonArray sessionList = new JsonArray();
+			while (rs.next()) {
+				JsonObject jsonSession = new JsonObject();
+				jsonSession.addProperty("id_session", rs.getInt("id_session"));
+				jsonSession.addProperty("scheduled_start_time", rs.getString("scheduled_start_time"));
+				jsonSession.addProperty("scheduled_finish_time", rs.getString("scheduled_finish_time"));				
+				sessionList.add(jsonSession);				
+			}
+			repReturn = new JsonRepresentation(sessionList.toString());
+			DatabaseManager.disconnectFromDatabase(conn);
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (rs != null) try { rs.close(); } catch(Exception e) {}
+		}
+		return repReturn;
+	}
+
+
+
 	/**
 	 * This method returns all the sessions data of the specified user in the db
 	 * @param userId : the ID of the user
@@ -95,13 +141,13 @@ public class Sessions extends ServerResource{
 				sessionList.add(jsonSession);				
 			}
 			repReturn = new JsonRepresentation(sessionList.toString());
+			DatabaseManager.disconnectFromDatabase(conn);
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
 			if (rs != null) try { rs.close(); } catch(Exception e) {}
 		}
-		DatabaseManager.disconnectFromDatabase();
 		return repReturn;
 	}
 
@@ -143,13 +189,13 @@ public class Sessions extends ServerResource{
 				sessionList.add(jsonSession);				
 			}
 			repReturn = new JsonRepresentation(sessionList.toString());
+			DatabaseManager.disconnectFromDatabase(conn);
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
 			if (rs != null) try { rs.close(); } catch(Exception e) {}
 		}
-		DatabaseManager.disconnectFromDatabase();
 		return repReturn;
 	}
 	
@@ -213,13 +259,14 @@ public class Sessions extends ServerResource{
 			}
 			sessionList.add(jsonSession);
 			repReturn = new JsonRepresentation(sessionList.toString());
+			DatabaseManager.disconnectFromDatabase(conn);
+			
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
 			if (rs != null) try { rs.close(); } catch(Exception e) {}
 		}
-		DatabaseManager.disconnectFromDatabase();
 		return repReturn;
 	}
 

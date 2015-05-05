@@ -89,6 +89,7 @@ public class Simulators extends ServerResource{
 				simulatorList.add(jsonSimulator);				
 			}
 			repReturn = new JsonRepresentation(simulatorList.toString());
+			DatabaseManager.disconnectFromDatabase(conn);
 			
 		}catch (Exception e) {
 			e.printStackTrace();
@@ -96,7 +97,7 @@ public class Simulators extends ServerResource{
 		finally {
 			if (rs != null) try { rs.close(); } catch(Exception e) {}
 		}
-		DatabaseManager.disconnectFromDatabase();
+		
 		return repReturn;
 	}
 	
