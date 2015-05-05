@@ -43,11 +43,16 @@ public class Simulators extends ServerResource{
 		System.out.println("Dispatch get");
 		
 		Map<String, String> queryMap = getQuery().getValuesMap();
-
-		if(queryMap.size()==1 && queryMap.containsKey(Constants.SIMULATOR_ID))
+		if(queryMap.size()==0)
+		{
+			repReturn = getAllSimulatorData();
+			System.out.println("get all simulators");
+		}
+		else if(queryMap.size()==1 && queryMap.containsKey(Constants.SIMULATOR_ID))
 		{
 			String simId = queryMap.get(Constants.SIMULATOR_ID);
 			repReturn = getSimulatorData(simId);
+			System.out.println("get simulator data");
 		}
 		else
 		{
@@ -56,9 +61,51 @@ public class Simulators extends ServerResource{
 		
 		return repReturn;
 	}
+
 	
 	
-	
+	/**
+	 * This method return a json with all the simulators in the db
+	 * 
+	 */
+	private Representation getAllSimulatorData() {
+		
+		ResultSet rs = null;
+		Representation repReturn = null;
+		// Declare the JDBC objects.
+
+		try {
+			//connection to db
+			Connection conn=DatabaseManager.connectToDatabase();
+						
+			//query to find data of simulators
+			String query = "SELECT * FROM simulators";
+			Statement st = conn.createStatement();
+			rs=st.executeQuery(query);
+			
+			// Iterate through the data in the result set and display it.
+			JsonArray simulatorList = new JsonArray();
+			while (rs.next()) {
+				JsonObject jsonSimulator = new JsonObject();
+				jsonSimulator.addProperty("id_simulator", rs.getInt("id_simulator"));
+				jsonSimulator.addProperty("model", rs.getString("model"));		
+				simulatorList.add(jsonSimulator);				
+			}
+			repReturn = new JsonRepresentation(simulatorList.toString());
+			DatabaseManager.disconnectFromDatabase(conn);
+			
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (rs != null) try { rs.close(); } catch(Exception e) {}
+		}
+		
+		return repReturn;
+	}
+
+
+
 	/**
 	 * This method find in the db the data about the simulator with the id in the paramenters
 	 * 

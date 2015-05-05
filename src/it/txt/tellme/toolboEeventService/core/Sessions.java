@@ -34,12 +34,19 @@ public class Sessions extends ServerResource{
 		
 		Map<String, String> queryMap = getQuery().getValuesMap();
 
-		
+		System.out.println("size   "+queryMap.size());
 		if(queryMap.size()==0)
 		{
 			//get the session data
 			System.out.println("get all sessions data");
 			repReturn = getAllSessionsData();
+		}
+		else if(queryMap.size()==1 && queryMap.containsKey(Constants.SIMULATOR_ID))
+		{
+			//get the session data of a simulator
+			System.out.println("get all sessions data of a simulator");
+			String simId = queryMap.get(Constants.SIMULATOR_ID);
+			repReturn = getAllSessionsDataSimulator(simId);
 		}
 		else if(queryMap.size()==1 && queryMap.containsKey(Constants.SESSION_ID))
 		{
@@ -48,12 +55,13 @@ public class Sessions extends ServerResource{
 			String sesId = queryMap.get(Constants.SESSION_ID);
 			repReturn = getSessionData(sesId);
 		}
-		else if(queryMap.size()==1 && queryMap.containsKey(Constants.USER_ID))
+		else if(queryMap.size()==2 && queryMap.containsKey(Constants.USER_ID) && queryMap.containsKey(Constants.SIMULATOR_ID))
 		{
 			//get list of sessions of a user
 			System.out.println("Sessions of a user");
 			String userId = queryMap.get(Constants.USER_ID);
-			repReturn = getAllSessionOfUser(userId);
+			String simId = queryMap.get(Constants.SIMULATOR_ID);
+			repReturn = getAllSessionOfUser(userId, simId );
 		}
 		else if(queryMap.size()==2 && queryMap.containsKey(Constants.SESSION_DATA_INIT) && queryMap.containsKey(Constants.SESSION_ID))
 		{
@@ -70,7 +78,48 @@ public class Sessions extends ServerResource{
 		return repReturn;
 	}
 	
-	
+	/**
+	 * This method get all the session data of a simulator
+	 * @param simId
+	 * @return json with session data
+	 */
+	private Representation getAllSessionsDataSimulator(String simId) {
+		
+		ResultSet rs = null;
+		Representation repReturn = null;
+		// Declare the JDBC objects.
+
+		try {
+			//connection to db
+			Connection conn=DatabaseManager.connectToDatabase();
+						
+			//query to find session with specified id
+			String query = "SELECT sessions.id_session, sessions.scheduled_start_time, sessions.scheduled_finish_time FROM sessions WHERE sessions.simulator="+simId+" ORDER BY sessions.scheduled_start_time";
+			Statement st = conn.createStatement();
+			rs=st.executeQuery(query);
+			
+			// Iterate through the data in the result set and display it.
+			JsonArray sessionList = new JsonArray();
+			while (rs.next()) {
+				JsonObject jsonSession = new JsonObject();
+				jsonSession.addProperty("id_session", rs.getInt("id_session"));
+				jsonSession.addProperty("scheduled_start_time", rs.getString("scheduled_start_time"));
+				jsonSession.addProperty("scheduled_finish_time", rs.getString("scheduled_finish_time"));				
+				sessionList.add(jsonSession);				
+			}
+			repReturn = new JsonRepresentation(sessionList.toString());
+			DatabaseManager.disconnectFromDatabase(conn);
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (rs != null) try { rs.close(); } catch(Exception e) {}
+		}
+		return repReturn;
+		
+	}
+
+
 	/**
 	 * This method return all the sessions data
 	 * @return
@@ -117,7 +166,7 @@ public class Sessions extends ServerResource{
 	 * @return A list of sessions of the user in json
 	 */
 	
-	private Representation getAllSessionOfUser(String userId) {
+	private Representation getAllSessionOfUser(String userId, String simId) {
 		ResultSet rs = null;
 		Representation repReturn = null;
 		// Declare the JDBC objects.
@@ -126,8 +175,8 @@ public class Sessions extends ServerResource{
 			//connection to db
 			Connection conn=DatabaseManager.connectToDatabase();
 						
-			//query to find session with specified id
-			String query = "SELECT sessions.id_session, sessions.scheduled_start_time, sessions.scheduled_finish_time FROM users, partecipants, sessions WHERE users.id_user=partecipants.id_user and sessions.id_session=partecipants.id_session and users.id_user="+userId+" GROUP BY sessions.id_session ORDER BY sessions.scheduled_start_time";
+			//query to find session with specified id user and id simulator
+			String query = "SELECT sessions.id_session, sessions.scheduled_start_time, sessions.scheduled_finish_time FROM users, partecipants, sessions WHERE users.id_user=partecipants.id_user and sessions.id_session=partecipants.id_session and users.id_user="+userId+" and sessions.simulator="+simId+" GROUP BY sessions.id_session ORDER BY sessions.scheduled_start_time";
 			Statement st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
