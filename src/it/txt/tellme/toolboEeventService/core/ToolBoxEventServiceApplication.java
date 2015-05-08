@@ -42,9 +42,6 @@ public class ToolBoxEventServiceApplication extends Application
     
 	public static void main(String[] args) throws Exception {
         Component c = new Component();
-        // set the path to the configuration file
-        //setConfigurationData("D:\\conf\\MusesRestServiceGIConfig.properties");
-        //setConfigurationData(args[0]); 
         c.getServers().add(Protocol.HTTP, 8182);
         c.getClients().add(Protocol.CLAP);
         c.getDefaultHost().attach(new ToolBoxEventServiceApplication());
@@ -56,10 +53,6 @@ public class ToolBoxEventServiceApplication extends Application
 	
     public Restlet createInboundRoot() 
     {
-    	// comment to run from eclipse
-    	
-    	//String path = getContext().getParameters().getValues("propertyPath");
-    	//setConfigurationData(path);
         Router router = new Router(getContext());
     	
     	//osmose
@@ -68,6 +61,7 @@ public class ToolBoxEventServiceApplication extends Application
     	router.attach("/sessions", Sessions.class);
     	router.attach("/simulators", Simulators.class);
     	router.attach("/types", Types.class);
+    	router.attach("/components", Components.class);
     	
     	return router;
     }

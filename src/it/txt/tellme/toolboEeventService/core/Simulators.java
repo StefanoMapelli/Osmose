@@ -54,6 +54,12 @@ public class Simulators extends ServerResource{
 			repReturn = getSimulatorData(simId);
 			System.out.println("get simulator data");
 		}
+		else if(queryMap.size()==2 && queryMap.containsKey(Constants.SIMULATOR_ID) && queryMap.containsKey(Constants.GET_STRUCTURE))
+		{
+			String simId = queryMap.get(Constants.SIMULATOR_ID);
+			repReturn = getSimulatorStructure(simId);
+			System.out.println("get simulator structure");
+		}
 		else
 		{
 			setStatus(Status.CLIENT_ERROR_BAD_REQUEST);
@@ -136,6 +142,56 @@ public class Simulators extends ServerResource{
 				simulatorList.add(jsonSimulator);				
 			}
 			repReturn = new JsonRepresentation(simulatorList.toString());
+			DatabaseManager.disconnectFromDatabase(conn);
+			
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (rs != null) try { rs.close(); } catch(Exception e) {}
+		}
+		
+		return repReturn;
+	}
+	
+	
+	
+	/**
+	 * This method returns the structure of the simulator. The simulator is composed by systems,
+	 * subsystems and components. With a json the method returns a list of components with
+	 * his system and his subsystem
+	 * 
+	 * @param simId
+	 * @return a json with components, system and subsystem data
+	 */
+	private Representation getSimulatorStructure(String simId)
+	{
+		ResultSet rs = null;
+		Representation repReturn = null;
+		// Declare the JDBC objects.
+
+		try {
+			//connection to db
+			Connection conn=DatabaseManager.connectToDatabase();
+						
+			//query to find data of the components of the simulator
+			String query = "SELECT systems.name as system_name, subsystems.name as subsystem_name, components.name, components.id_component FROM systems, subsystems, components WHERE systems.id_system=subsystems.system AND subsystems.id_subsystem=components.subsystem AND components.simulator="+simId;
+			Statement st = conn.createStatement();
+			rs=st.executeQuery(query);
+			
+			// Iterate through the data in the result set and display it.
+
+			JsonArray componentsList = new JsonArray();
+
+			while (rs.next()) {
+				JsonObject jsonComponent = new JsonObject();
+				jsonComponent.addProperty("component", rs.getString("name"));
+				jsonComponent.addProperty("id_component", rs.getString("id_component"));
+				jsonComponent.addProperty("system_name", rs.getString("system_name"));
+				jsonComponent.addProperty("subsystem_name", rs.getString("subsystem_name"));
+				componentsList.add(jsonComponent);
+			}
+			repReturn = new JsonRepresentation(componentsList.toString());
 			DatabaseManager.disconnectFromDatabase(conn);
 			
 		}catch (Exception e) {

@@ -162,7 +162,7 @@ public class Types extends ServerResource{
 			Connection conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issue with specified id
-			String query = "SELECT id_priority FROM t_priorities";
+			String query = "SELECT id_priority FROM t_priorities ORDER BY description";
 			Statement st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
@@ -202,7 +202,7 @@ public class Types extends ServerResource{
 			Connection conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issue with specified id
-			String query = "SELECT id_severity FROM t_severities";
+			String query = "SELECT id_severity FROM t_severities ORDER BY description";
 			Statement st = conn.createStatement();
 			rs=st.executeQuery(query);
 			

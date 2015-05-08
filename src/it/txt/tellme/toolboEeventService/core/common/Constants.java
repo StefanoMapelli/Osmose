@@ -43,6 +43,7 @@ public class Constants {
 	    public static final String SIMULATOR_ID="simulatorId";
 	    public static final String USER_ID = "userId";
 	    public static final String ISSUE_ID="issueId";
+	    public static final Object COMPONENT_ID = "componentId";
 	    public static final String SYSTEM_NAME="systemName";
 	    public static final String DESCRIPTION="description";
 	    public static final String ISSUE_OPERATION="opIssue";
@@ -58,6 +59,7 @@ public class Constants {
 	    public static final String GET_TYPES = "getTypes";
 	    public static final String GET_PRIORITIES = "getPriorities";
 	    public static final String GET_SYSTEMS = "getSystems";
+		public static final Object GET_STRUCTURE = "getStructure";
 	    
 	    
 	    
@@ -75,6 +77,7 @@ public class Constants {
 		
 		public static final String PICTURES_FOLDER_PATH="C:\\OsmoseMedia\\pictures\\";
 		public static final String AUDIO_FOLDER_PATH="C:\\OsmoseMedia\\audios\\";
+	
 		
 		
 		

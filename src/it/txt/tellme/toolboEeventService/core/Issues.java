@@ -61,6 +61,20 @@ public class Issues extends ServerResource{
 			repReturn = getAllIssuesForCurrentSession(sesId);
 			System.out.println("Get issues of the session");
 		}	
+		else if(queryMap.size()==1 && queryMap.containsKey(Constants.SIMULATOR_ID))
+		{
+			//get all issues of the specified session
+			String simId = queryMap.get(Constants.SIMULATOR_ID);
+			repReturn = getAllIssuesForCurrentSimulator(simId);
+			System.out.println("Get issues of the simulator");
+		}	
+		else if(queryMap.size()==1 && queryMap.containsKey(Constants.SYSTEM_NAME))
+		{
+			//get issue information
+			String sysId = queryMap.get(Constants.SYSTEM_NAME);
+			repReturn = getIssuesWithSystem(sysId);
+			System.out.println("Get issues of the system");
+		}
 		else if(queryMap.size()==1 && queryMap.containsKey(Constants.ISSUE_ID))
 		{
 			//get issue information
@@ -570,6 +584,55 @@ public class Issues extends ServerResource{
 	}
 		
 	
+	/**
+	 * This method return all the issues with the specified system. Return a JSON
+
+	 * @param systemName: name of the system 
+	 * @return a JSON with a list of all the issues
+	 */
+	private Representation getIssuesWithSystem(String systemName) {
+		
+		ResultSet rs = null;
+		Representation repReturn = null;
+		// Declare the JDBC objects.
+
+		try {
+			//connection to db
+			Connection conn=DatabaseManager.connectToDatabase();
+						
+			//query to find issues of the specified session
+			String query = "SELECT issues.id_issue, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name FROM issues, users, systems WHERE users.id_user=issues.user_raiser AND systems.id_system=issues.system AND systems.name='"+systemName+"'";
+			Statement st = conn.createStatement();
+			rs=st.executeQuery(query);
+			
+			// Iterate through the data in the result set and display it.
+			JsonArray issuesList = new JsonArray();
+			while (rs.next()) {
+				JsonObject jsonIssue = new JsonObject();
+				jsonIssue.addProperty("id_issue", rs.getInt("id_issue"));		
+				jsonIssue.addProperty("raise_time", rs.getString("raise_time"));
+				jsonIssue.addProperty("hw_sw", rs.getString("hw_sw"));
+				jsonIssue.addProperty("cau_war", rs.getString("cau_war"));
+				jsonIssue.addProperty("state", rs.getString("state"));
+				jsonIssue.addProperty("first_name_raiser", rs.getString("first_name"));
+				jsonIssue.addProperty("last_name_raiser", rs.getString("last_name"));
+				jsonIssue.addProperty("system", rs.getString("name"));
+				
+				issuesList.add(jsonIssue);				
+			}
+			repReturn = new JsonRepresentation(issuesList.toString());
+			DatabaseManager.disconnectFromDatabase(conn);
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+		}
+		return repReturn;
+	}
+		
+	
+	
 	
 	/**
 	 * This method find in the db all the issues of a session given as input parameter. Return the id,
@@ -590,6 +653,55 @@ public class Issues extends ServerResource{
 						
 			//query to find issues of the specified session
 			String query = "SELECT issues.id_issue, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name FROM issues, users, systems WHERE users.id_user=issues.user_raiser AND systems.id_system=issues.system AND issues.session="+sesId;
+			Statement st = conn.createStatement();
+			rs=st.executeQuery(query);
+			
+			// Iterate through the data in the result set and display it.
+			JsonArray issuesList = new JsonArray();
+			while (rs.next()) {
+				JsonObject jsonIssue = new JsonObject();
+				jsonIssue.addProperty("id_issue", rs.getInt("id_issue"));		
+				jsonIssue.addProperty("raise_time", rs.getString("raise_time"));
+				jsonIssue.addProperty("hw_sw", rs.getString("hw_sw"));
+				jsonIssue.addProperty("cau_war", rs.getString("cau_war"));
+				jsonIssue.addProperty("state", rs.getString("state"));
+				jsonIssue.addProperty("first_name_raiser", rs.getString("first_name"));
+				jsonIssue.addProperty("last_name_raiser", rs.getString("last_name"));
+				jsonIssue.addProperty("system", rs.getString("name"));
+				
+				issuesList.add(jsonIssue);				
+			}
+			repReturn = new JsonRepresentation(issuesList.toString());
+			DatabaseManager.disconnectFromDatabase(conn);
+			
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+		}
+		return repReturn;
+	}
+	
+	/**
+	 * This method find in the db all the issues of a simulator given as input parameter. Return the id,
+	 * the raise time, and the type of the issue(hardware or software - caution or warning)
+	 * 
+	 * @param simId: id of the simulator on which we want to exec the query
+	 * @return the list of the issues requested in a json
+	 */
+	private Representation getAllIssuesForCurrentSimulator(String simId)
+	{
+		ResultSet rs = null;
+		Representation repReturn = null;
+		// Declare the JDBC objects.
+
+		try {
+			//connection to db
+			Connection conn=DatabaseManager.connectToDatabase();
+						
+			//query to find issues of the specified session
+			String query = "SELECT issues.id_issue, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name FROM issues, users, systems, sessions WHERE users.id_user=issues.user_raiser AND systems.id_system=issues.system AND sessions.id_session=issues.session AND sessions.simulator="+simId;
 			Statement st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
