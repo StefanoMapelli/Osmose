@@ -41,6 +41,13 @@ public class Users extends ServerResource{
 			repReturn=getUserData(idUser);
 			System.out.println("Get user data");
 					
+		}
+		else if(queryMap.size()==1 && queryMap.containsKey(Constants.GET_USER_ROLE)){
+			
+			String userRole=queryMap.get(Constants.GET_USER_ROLE);
+			repReturn=getUserWithRole(userRole);
+			System.out.println("Get user with role data");
+					
 		}else{
 			setStatus(Status.CLIENT_ERROR_BAD_REQUEST);
 		}
@@ -48,9 +55,53 @@ public class Users extends ServerResource{
 		return repReturn;
 	}
 
+	
 	/**
 	 * 
-	 * This method get all the data of the user with the specified id in the db
+	 * This method gets the data of the instructor users
+	 * @return json with instructors
+	 */
+	private Representation getUserWithRole(String role) {
+	
+		ResultSet rs = null;
+		Representation repReturn = null;
+		// Declare the JDBC objects.
+
+		try {
+			//connection to db
+			Connection conn=DatabaseManager.connectToDatabase();
+						
+			
+			String query = "SELECT * FROM users WHERE users.role='"+role+"'";
+			Statement st = conn.createStatement();
+			rs=st.executeQuery(query);
+			
+			// Iterate through the data in the result set and display it.
+			JsonArray userList = new JsonArray();
+			while (rs.next()) {
+				JsonObject jsonUser = new JsonObject();
+				jsonUser.addProperty("id_user", rs.getInt("id_user"));
+				jsonUser.addProperty("first_name", rs.getString("first_name"));
+				jsonUser.addProperty("last_name", rs.getString("last_name"));
+				jsonUser.addProperty("role", rs.getString("role"));	
+				jsonUser.addProperty("age", rs.getString("age"));
+				userList.add(jsonUser);				
+			}
+			repReturn = new JsonRepresentation(userList.toString());
+			DatabaseManager.disconnectFromDatabase(conn);
+			
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (rs != null) try { rs.close(); } catch(Exception e) {}
+		}
+		return repReturn;
+	}
+
+	/**
+	 * 
+	 * This method gets all the data of the user with the specified id in the db
 	 * @param idUser: id of the user
 	 * @return data of the user in a json
 	 */
@@ -64,7 +115,7 @@ public class Users extends ServerResource{
 			//connection to db
 			Connection conn=DatabaseManager.connectToDatabase();
 						
-			//query to find session with specified id
+			//query to find user with specified id
 			String query = "SELECT * FROM `users` WHERE users.id_user="+idUser;
 			Statement st = conn.createStatement();
 			rs=st.executeQuery(query);

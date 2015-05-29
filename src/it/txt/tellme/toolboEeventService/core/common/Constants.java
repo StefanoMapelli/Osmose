@@ -43,9 +43,14 @@ public class Constants {
 	    public static final String SIMULATOR_ID="simulatorId";
 	    public static final String USER_ID = "userId";
 	    public static final String ISSUE_ID="issueId";
-	    public static final Object COMPONENT_ID = "componentId";
+	    public static final String COMPONENT_ID = "componentId";
+	    public static final String MAINTENANCE_ID = "maintenanceId";
 	    public static final String SYSTEM_NAME="systemName";
+	    public static final String SUBSYSTEM_NAME = "subsystemName";
 	    public static final String DESCRIPTION="description";
+	    public static final String START_DATE = "startDate";
+	    public static final String FINISH_DATE = "finishDate";
+	    
 	    public static final String ISSUE_OPERATION="opIssue";
 	    public static final String UPDATE_DESCRIPTION="updateDescription";
 	    public static final String UPDATE_QUESTIONNAIRE="updateQuestionnaire";
@@ -59,8 +64,13 @@ public class Constants {
 	    public static final String GET_TYPES = "getTypes";
 	    public static final String GET_PRIORITIES = "getPriorities";
 	    public static final String GET_SYSTEMS = "getSystems";
-		public static final Object GET_STRUCTURE = "getStructure";
-	    
+	    public static final String GET_SUBSYSTEMS = "getSubsystems";
+	    public static final String GET_COMPONENTS = "getComponents";
+		public static final String GET_STRUCTURE = "getStructure";
+		public static final String GET_SCHEDULING = "getScheduling";
+		public static final String GET_USER_ROLE = "userRole";
+		public static final String LAST_SESSION = "lastSession";
+		public static final String DATE_NOW = "dateNow";
 	    
 	    
 	    public static final String SESSION_DATA_INIT="sessionData";
@@ -77,6 +87,15 @@ public class Constants {
 		
 		public static final String PICTURES_FOLDER_PATH="C:\\OsmoseMedia\\pictures\\";
 		public static final String AUDIO_FOLDER_PATH="C:\\OsmoseMedia\\audios\\";
+		
+		
+		
+		
+		
+		
+		
+		
+		
 	
 		
 		

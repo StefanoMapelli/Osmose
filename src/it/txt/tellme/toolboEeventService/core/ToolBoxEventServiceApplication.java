@@ -62,6 +62,7 @@ public class ToolBoxEventServiceApplication extends Application
     	router.attach("/simulators", Simulators.class);
     	router.attach("/types", Types.class);
     	router.attach("/components", Components.class);
+    	router.attach("/maintenances", Maintenances.class);
     	
     	return router;
     }

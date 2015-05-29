@@ -107,6 +107,22 @@ public class Issues extends ServerResource{
 			repReturn = getIssuesWithSystemAndSession(sesId, systemName);
 			System.out.println("Get issues with specified system and session");
 		}
+		else if(queryMap.size()==2 && queryMap.containsKey(Constants.SIMULATOR_ID) && queryMap.containsKey(Constants.SYSTEM_NAME))
+		{
+			//get issues of the specified system and session
+			String simId=queryMap.get(Constants.SIMULATOR_ID);
+			String systemName=queryMap.get(Constants.SYSTEM_NAME);
+			repReturn = getIssuesWithSystemAndSimulator(simId, systemName);
+			System.out.println("Get issues with specified system and simulator");
+		}
+		else if(queryMap.size()==2 && queryMap.containsKey(Constants.SIMULATOR_ID) && queryMap.containsKey(Constants.COMPONENT_ID))
+		{
+			//get issues of the specified system and session
+			String simId=queryMap.get(Constants.SIMULATOR_ID);
+			String compId=queryMap.get(Constants.COMPONENT_ID);
+			repReturn = getIssuesWithComponentAndSimulator(simId, compId);
+			System.out.println("Get issues with specified component and simulator");
+		}
 		else
 		{
 			setStatus(Status.CLIENT_ERROR_BAD_REQUEST);
@@ -114,8 +130,6 @@ public class Issues extends ServerResource{
 		
 		return repReturn;
 	}
-	
-
 
 	/**
 	 * POST method
@@ -171,7 +185,11 @@ public class Issues extends ServerResource{
 	
 
 
-	
+	/**
+	 * This method set the state of an issue to open
+	 * @param entity
+	 * @return
+	 */
 	private Representation putUnderMaintenanceIssue(Representation entity) 
 	{
 		System.out.println("Put under maintenance");
@@ -537,7 +555,106 @@ public class Issues extends ServerResource{
 	
 	
 	/**
-	 * This method return all the issues with the specified system of the specified session. Return a JSON
+	 * This method returns all the issues of the simulator of the specified system 
+	 * @param simId: id of the simulator
+	 * @param systemName: name of the system
+	 * @return the list of the issues  in a json
+	 */
+	private Representation getIssuesWithSystemAndSimulator(String simId, String systemName) {
+		
+		ResultSet rs = null;
+		Representation repReturn = null;
+		// Declare the JDBC objects.
+
+		try {
+			//connection to db
+			Connection conn=DatabaseManager.connectToDatabase();
+						
+			//query to find issues of the specified session
+			String query = "SELECT issues.id_issue, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name FROM issues, users, systems, sessions WHERE sessions.id_session=issues.session AND users.id_user=issues.user_raiser AND systems.id_system=issues.system AND systems.name='"+systemName+"' AND sessions.simulator="+simId;
+			Statement st = conn.createStatement();
+			rs=st.executeQuery(query);
+			
+			// Iterate through the data in the result set and display it.
+			JsonArray issuesList = new JsonArray();
+			while (rs.next()) {
+				JsonObject jsonIssue = new JsonObject();
+				jsonIssue.addProperty("id_issue", rs.getInt("id_issue"));		
+				jsonIssue.addProperty("raise_time", rs.getString("raise_time"));
+				jsonIssue.addProperty("hw_sw", rs.getString("hw_sw"));
+				jsonIssue.addProperty("cau_war", rs.getString("cau_war"));
+				jsonIssue.addProperty("state", rs.getString("state"));
+				jsonIssue.addProperty("first_name_raiser", rs.getString("first_name"));
+				jsonIssue.addProperty("last_name_raiser", rs.getString("last_name"));
+				jsonIssue.addProperty("system", rs.getString("name"));
+				
+				issuesList.add(jsonIssue);				
+			}
+			repReturn = new JsonRepresentation(issuesList.toString());
+			DatabaseManager.disconnectFromDatabase(conn);
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+		}
+		return repReturn;
+		
+	}
+	
+	
+	/**
+	 * This method returns all the issues of the specified component of the specified simulator
+	 * @param simId: id of the simulator
+	 * @param compId: id of the component
+	 * @return json with a list of issues
+	 */
+	private Representation getIssuesWithComponentAndSimulator(String simId,
+			String compId) {
+		
+		ResultSet rs = null;
+		Representation repReturn = null;
+		// Declare the JDBC objects.
+
+		try {
+			//connection to db
+			Connection conn=DatabaseManager.connectToDatabase();
+						
+			//query to find issues of the specified session
+			String query = "SELECT issues.id_issue, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name FROM issues, users, systems, sessions WHERE users.id_user=issues.user_raiser AND systems.id_system=issues.system AND sessions.id_session=issues.session AND sessions.simulator='"+simId+"' AND issues.component="+compId;
+			Statement st = conn.createStatement();
+			rs=st.executeQuery(query);
+			
+			// Iterate through the data in the result set and display it.
+			JsonArray issuesList = new JsonArray();
+			while (rs.next()) {
+				JsonObject jsonIssue = new JsonObject();
+				jsonIssue.addProperty("id_issue", rs.getInt("id_issue"));		
+				jsonIssue.addProperty("raise_time", rs.getString("raise_time"));
+				jsonIssue.addProperty("hw_sw", rs.getString("hw_sw"));
+				jsonIssue.addProperty("cau_war", rs.getString("cau_war"));
+				jsonIssue.addProperty("state", rs.getString("state"));
+				jsonIssue.addProperty("first_name_raiser", rs.getString("first_name"));
+				jsonIssue.addProperty("last_name_raiser", rs.getString("last_name"));
+				jsonIssue.addProperty("system", rs.getString("name"));
+				
+				issuesList.add(jsonIssue);				
+			}
+			repReturn = new JsonRepresentation(issuesList.toString());
+			DatabaseManager.disconnectFromDatabase(conn);
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+		}
+		return repReturn;
+		
+	}
+	
+	
+	/**
+	 * This method returns all the issues with the specified system of the specified session. Return a JSON
 	 * @param sesId: id of the session
 	 * @param systemName: name of the system 
 	 * @return a JSON with a list of all the issues
@@ -748,7 +865,7 @@ public class Issues extends ServerResource{
 			Connection conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issue with specified id
-			String query = "SELECT * FROM issues, systems WHERE systems.id_system=issues.system AND issues.id_issue="+issueId;
+			String query = "SELECT distinct *, systems.name as system_name, subsystems.name as subsystem_name, components.name as component_name FROM issues, systems, subsystems, components WHERE (subsystems.id_subsystem=issues.subsystem OR issues.subsystem is NULL) AND (components.id_component=issues.component OR issues.component is NULL) AND systems.id_system=issues.system AND issues.id_issue="+issueId+" GROUP BY issues.id_issue ";
 			Statement st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
@@ -764,9 +881,18 @@ public class Issues extends ServerResource{
 				jsonIssue.addProperty("hw_sw", rs.getString("hw_sw"));
 				jsonIssue.addProperty("cau_war", rs.getString("cau_war"));
 				jsonIssue.addProperty("state", rs.getString("state"));
-				jsonIssue.addProperty("system", rs.getString("name"));
-				jsonIssue.addProperty("subsystem", rs.getString("subsystem"));
-				jsonIssue.addProperty("component", rs.getString("component"));
+				jsonIssue.addProperty("system", rs.getString("system_name"));
+				
+				if(rs.getString("subsystem")==null)
+					jsonIssue.addProperty("subsystem", "null");
+				else
+					jsonIssue.addProperty("subsystem", rs.getString("subsystem_name"));
+				
+				if(rs.getString("component")==null)
+					jsonIssue.addProperty("component", "null");
+				else
+					jsonIssue.addProperty("component", rs.getString("component_name"));
+				
 				jsonIssue.addProperty("type", rs.getString("type"));
 				jsonIssue.addProperty("priority", rs.getString("priority"));
 				jsonIssue.addProperty("severity", rs.getString("severity"));
@@ -868,7 +994,7 @@ public class Issues extends ServerResource{
 	 */
 	private Representation updateQuestionnaireOfIssue(Representation entity) {
 		
-System.out.println("Update info with questionnaire");
+		System.out.println("Update info with questionnaire");
 		
 		Representation repReturn = null;
 		// Declare the JDBC objects.
@@ -909,15 +1035,23 @@ System.out.println("Update info with questionnaire");
 			else
 				preparedStmt.setNull(4, java.sql.Types.INTEGER);
 			
+			String idSubsystem = getIdSubsystem(jsonIssue.get("subsystem").getAsString());
+			
 			if(jsonIssue.get("subsystem").getAsString().compareTo(Constants.NONE)!=0)
-				preparedStmt.setString(5, jsonIssue.get("subsystem").getAsString());
+				preparedStmt.setString(5, idSubsystem);
 			else
 				preparedStmt.setNull(5, java.sql.Types.INTEGER);
 			
-			if(jsonIssue.get("component").getAsString().compareTo(Constants.NONE)!=0)
-				preparedStmt.setString(6, jsonIssue.get("component").getAsString());
+			String idComponent = getIdComponent(jsonIssue.get("component").getAsString());
+			
+			if(idComponent.compareTo(Constants.NONE)!=0)
+			{
+				preparedStmt.setString(6, idComponent);
+			}
 			else
+			{
 				preparedStmt.setNull(6, java.sql.Types.INTEGER);
+			}
 			
 			preparedStmt.setString(7, "described");
 
@@ -928,6 +1062,11 @@ System.out.println("Update info with questionnaire");
 			
 			preparedStmt.executeUpdate();
 			preparedStmt.close(); 
+			
+			if(idComponent.compareTo(Constants.NONE)!=0)
+			{
+				updateComponentState(idComponent,"Broken");
+			}
 		
 			System.out.println("Update info completed");
 			DatabaseManager.disconnectFromDatabase(conn);
@@ -942,6 +1081,110 @@ System.out.println("Update info with questionnaire");
 	}
 	
 	
+	
+	/**
+	 * This method updates the state of the component in the db
+	 * @param idComponent: id of the component to be modified
+	 * @param state: new state of the component
+	 */
+	private void updateComponentState(String idComponent, String state) {
+		
+		System.out.println("Update component state");
+		
+		// Declare the JDBC objects.
+		Connection conn = null;
+		try{
+						
+			//connection to db
+			conn=DatabaseManager.connectToDatabase();
+			
+			//upadate the state of the component
+			String query="UPDATE `components` SET `component_state` = ? WHERE `components`.`id_component` = ?";
+		
+			PreparedStatement preparedStmt = conn.prepareStatement(query);
+			
+			//setting paramenter of the query
+			
+			preparedStmt.setString(1, state);
+			preparedStmt.setString(2, idComponent);
+			preparedStmt.executeUpdate();
+			preparedStmt.close(); 
+
+			DatabaseManager.disconnectFromDatabase(conn);
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+			setStatus(Status.SERVER_ERROR_INTERNAL);
+		}
+	}
+
+
+
+	private String getIdComponent(String compName) {
+		ResultSet rs = null;
+		String idSystem= null;
+
+		try {
+			
+			//connection to db
+			Connection conn=DatabaseManager.connectToDatabase();
+						
+			//query to find id of the component
+			String query = "SELECT id_component FROM components WHERE components.name='"+compName+"'";
+			Statement st = conn.createStatement();
+			rs=st.executeQuery(query);
+			
+			// Iterate through the data in the result set and display it.
+			while (rs.next()) {
+				idSystem=rs.getString("id_component");					
+			}
+			DatabaseManager.disconnectFromDatabase(conn);
+			
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (rs != null) try { rs.close(); } catch(Exception e) {}
+		}
+		return idSystem;
+	}
+
+
+
+	private String getIdSubsystem(String subName) {
+		ResultSet rs = null;
+		String idSystem= null;
+
+		try {
+			
+			//connection to db
+			Connection conn=DatabaseManager.connectToDatabase();
+						
+			//query to find id of the component
+			String query = "SELECT id_subsystem FROM subsystems WHERE subsystems.name='"+subName+"'";
+			Statement st = conn.createStatement();
+			rs=st.executeQuery(query);
+			
+			// Iterate through the data in the result set and display it.
+			while (rs.next()) {
+				idSystem=rs.getString("id_subsystem");					
+			}
+			DatabaseManager.disconnectFromDatabase(conn);
+			
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (rs != null) try { rs.close(); } catch(Exception e) {}
+		}
+		return idSystem;
+	}
+
+
+
 	private String getIdSystem(String systemName) {
 		
 		ResultSet rs = null;

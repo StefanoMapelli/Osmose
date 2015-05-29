@@ -53,6 +53,7 @@ public class Components extends ServerResource{
 		private Representation getComponentsData(String componentId) {
 			
 			ResultSet rs = null;
+			ResultSet rsMT = null;
 			Representation repReturn = null;
 
 			try {
@@ -61,13 +62,28 @@ public class Components extends ServerResource{
 				Connection conn=DatabaseManager.connectToDatabase();
 							
 				//query to find issue with specified id
-				String query = "SELECT * FROM components WHERE components.id_component="+componentId;
+				String query = "SELECT components.*, systems.name as system_name, subsystems.name as subsystem_name FROM components, systems, subsystems WHERE systems.id_system=subsystems.system AND components.subsystem=subsystems.id_subsystem AND components.id_component="+componentId;
 				Statement st = conn.createStatement();
-				rs=st.executeQuery(query);
+				rs=st.executeQuery(query);				
 				
 				// Iterate through the data in the result set and display it.
 				JsonArray componentsList = new JsonArray();
-				while (rs.next()) {					
+				while (rs.next()) {	
+					
+					JsonArray mtList = new JsonArray();
+					query = "SELECT components.mtbf, components.installation_date, components.mtbr FROM components WHERE components.simulator="+rs.getString("simulator")+" AND components.name='"+rs.getString("name")+"' ORDER BY components.installation_date";
+					Statement stMT = conn.createStatement();
+					rsMT=stMT.executeQuery(query);
+					
+					while(rsMT.next())
+					{
+						JsonObject mtObj = new JsonObject();
+						mtObj.addProperty("mtbr_value", rsMT.getString("mtbr"));
+						mtObj.addProperty("mtbf_value", rsMT.getString("mtbf"));
+						mtObj.addProperty("date", rsMT.getString("installation_date"));
+						mtList.add(mtObj);
+					}
+					
 					JsonObject component = new JsonObject();
 					component.addProperty("id_component", rs.getString("id_component"));
 					component.addProperty("name", rs.getString("name"));
@@ -77,10 +93,16 @@ public class Components extends ServerResource{
 					component.addProperty("expected_life_time", rs.getString("expected_life_time"));
 					component.addProperty("mtbf", rs.getString("mtbf"));
 					component.addProperty("mtbr", rs.getString("mtbr"));
-					component.addProperty("producer", rs.getString("producer"));
+					component.addProperty("producer", rs.getString("manufacturer"));
+					component.addProperty("part_number", rs.getString("part_number"));
+					component.addProperty("serial_number", rs.getString("serial_number"));
 					component.addProperty("component_state", rs.getString("component_state"));
-					component.addProperty("subsystem", rs.getString("subsystem"));
+					component.addProperty("subsystem", rs.getString("subsystem_name"));
+					component.addProperty("system", rs.getString("system_name"));
 					component.addProperty("simulator", rs.getString("simulator"));
+					component.addProperty("hw_sw", rs.getString("hw_sw"));
+					component.add("mtList", mtList);
+					
 					componentsList.add(component);				
 				}
 				repReturn = new JsonRepresentation(componentsList.toString());
@@ -95,5 +117,4 @@ public class Components extends ServerResource{
 			}
 			return repReturn;
 		}
-
 }

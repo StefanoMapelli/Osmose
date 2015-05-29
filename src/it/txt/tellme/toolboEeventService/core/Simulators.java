@@ -175,7 +175,7 @@ public class Simulators extends ServerResource{
 			Connection conn=DatabaseManager.connectToDatabase();
 						
 			//query to find data of the components of the simulator
-			String query = "SELECT systems.name as system_name, subsystems.name as subsystem_name, components.name, components.id_component FROM systems, subsystems, components WHERE systems.id_system=subsystems.system AND subsystems.id_subsystem=components.subsystem AND components.simulator="+simId;
+			String query = "SELECT systems.name as system_name, subsystems.name as subsystem_name, components.name, components.id_component, components.component_state, components.life_time, components.expected_life_time FROM systems, subsystems, components WHERE systems.id_system=subsystems.system AND subsystems.id_subsystem=components.subsystem AND (components.component_state='Installed' OR components.component_state='Broken') AND components.simulator="+simId;
 			Statement st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
@@ -189,6 +189,17 @@ public class Simulators extends ServerResource{
 				jsonComponent.addProperty("id_component", rs.getString("id_component"));
 				jsonComponent.addProperty("system_name", rs.getString("system_name"));
 				jsonComponent.addProperty("subsystem_name", rs.getString("subsystem_name"));
+				//if the life time is near to expected life time we put alert as state
+				double life=Float.parseFloat(rs.getString("life_time"));
+				double expLife=Float.parseFloat(rs.getString("expected_life_time"))-(Float.parseFloat(rs.getString("expected_life_time"))*0.1);
+				if(life<expLife)
+					jsonComponent.addProperty("state", rs.getString("component_state"));
+				else
+					jsonComponent.addProperty("state", "alert");
+				
+				String issue=checkIssueForComponent(rs.getString("id_component"));
+				jsonComponent.addProperty("issue", issue);
+				
 				componentsList.add(jsonComponent);
 			}
 			repReturn = new JsonRepresentation(componentsList.toString());
@@ -203,6 +214,53 @@ public class Simulators extends ServerResource{
 		
 		return repReturn;
 	}
+
+
+/**
+ * This method returns none if there isn't issue for the component, c if there's a caution and no warning, w if there's a warning
+ * @param idComponent
+ * @return
+ */
+	private String checkIssueForComponent(String idComponent) {
+		
+		ResultSet rs = null;
+		String outcome="none";
+		// Declare the JDBC objects.
+		
+
+		try {
+			//connection to db
+			Connection conn=DatabaseManager.connectToDatabase();
+						
+			//query to find issues of the component of the simulator
+			String query = "SELECT issues.cau_war FROM issues WHERE (issues.state='open' OR issues.state='described') AND issues.component="+idComponent;
+			Statement st = conn.createStatement();
+			rs=st.executeQuery(query);
+			
+			// Iterate through the data in the result set and display it.
+			while (rs.next()) {
+				if(rs.getString("cau_war").compareTo("c")==0)
+				{
+					outcome="c";
+				}
+				else
+				{
+					return "w";
+				}
+			}
+			
+			DatabaseManager.disconnectFromDatabase(conn);
+			
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (rs != null) try { rs.close(); } catch(Exception e) {}
+		}
+		
+		return outcome;
+	}
+	
 	
 	
 	

@@ -58,6 +58,23 @@ public class Types extends ServerResource{
 				System.out.println("Get system objects");
 			}
 		}	
+		else if(queryMap.size()==2 && queryMap.containsKey(Constants.TYPE_OPERATION))
+		{
+			if(queryMap.get(Constants.TYPE_OPERATION).compareTo(Constants.GET_SUBSYSTEMS)==0)
+			{
+				//get all system objects
+				String systemName=queryMap.get(Constants.SYSTEM_NAME);
+				repReturn=getSubsystemObjects(systemName);
+				System.out.println("Get subsystem objects");
+			} 
+			else if(queryMap.get(Constants.TYPE_OPERATION).compareTo(Constants.GET_COMPONENTS)==0)
+			{
+				//get all system objects
+				String subsystemName=queryMap.get(Constants.SUBSYSTEM_NAME);
+				repReturn=getComponentObjects(subsystemName);
+				System.out.println("Get component objects");
+			}
+		}
 		else
 		{
 			setStatus(Status.CLIENT_ERROR_BAD_REQUEST);
@@ -68,8 +85,86 @@ public class Types extends ServerResource{
 	
 
 	/**
-	 * This method return all the tuples of the table systems
-	 * @return
+	 * This method get all the components of the specified subsystem
+	 * @param subsystemName: specified subsystem
+	 * @return json with info
+	 */
+	private Representation getComponentObjects(String subsystemName) {
+		
+		ResultSet rs = null;
+		Representation repReturn = null;
+
+		try {	
+			//connection to db
+			Connection conn=DatabaseManager.connectToDatabase();
+						
+			String query = "SELECT components.name FROM subsystems, components WHERE subsystems.id_subsystem=components.subsystem AND subsystems.name='"+subsystemName+"'";
+			Statement st = conn.createStatement();
+			rs=st.executeQuery(query);
+			
+			// Iterate through the data in the result set and display it.
+			JsonArray componentList = new JsonArray();
+			while (rs.next()) {
+				JsonObject jsonComponent = new JsonObject();
+				jsonComponent.addProperty("component", rs.getString("name"));
+				componentList.add(jsonComponent);				
+			}
+			repReturn = new JsonRepresentation(componentList.toString());
+			DatabaseManager.disconnectFromDatabase(conn);
+			
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (rs != null) try { rs.close(); } catch(Exception e) {}
+		}
+		return repReturn;
+	}
+
+
+	/**
+	 * This method returns all the tuples of the table subsystems with specified system
+	 * @return json
+	 */
+	private Representation getSubsystemObjects(String systemName) {
+		
+		ResultSet rs = null;
+		Representation repReturn = null;
+
+		try {	
+			//connection to db
+			Connection conn=DatabaseManager.connectToDatabase();
+						
+			//query to find issue with specified id
+			String query = "SELECT subsystems.name FROM subsystems, systems WHERE subsystems.system=systems.id_system AND systems.name='"+systemName+"'";
+			Statement st = conn.createStatement();
+			rs=st.executeQuery(query);
+			
+			// Iterate through the data in the result set and display it.
+			JsonArray subsystemList = new JsonArray();
+			while (rs.next()) {
+				JsonObject jsonSubsystem = new JsonObject();
+				jsonSubsystem.addProperty("subsystem", rs.getString("name"));
+				subsystemList.add(jsonSubsystem);				
+			}
+			repReturn = new JsonRepresentation(subsystemList.toString());
+			DatabaseManager.disconnectFromDatabase(conn);
+			
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (rs != null) try { rs.close(); } catch(Exception e) {}
+		}
+		return repReturn;
+	}
+
+
+	/**
+	 * This method returns all the tuples of the table systems
+	 * @return json
 	 */
 	private Representation getSystemObjects() {
 		
