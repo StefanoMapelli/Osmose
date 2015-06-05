@@ -192,10 +192,13 @@ public class Simulators extends ServerResource{
 				//if the life time is near to expected life time we put alert as state
 				double life=Float.parseFloat(rs.getString("life_time"));
 				double expLife=Float.parseFloat(rs.getString("expected_life_time"))-(Float.parseFloat(rs.getString("expected_life_time"))*0.1);
-				if(life<expLife)
+				
+				if(rs.getString("component_state").compareTo("Broken")==0)
 					jsonComponent.addProperty("state", rs.getString("component_state"));
-				else
+				else if(life>expLife)
 					jsonComponent.addProperty("state", "alert");
+				else
+					jsonComponent.addProperty("state", rs.getString("component_state"));
 				
 				String issue=checkIssueForComponent(rs.getString("id_component"));
 				jsonComponent.addProperty("issue", issue);

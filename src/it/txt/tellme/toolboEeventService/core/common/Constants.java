@@ -59,6 +59,7 @@ public class Constants {
 	    public static final String DELETE_ISSUE="deleteIssue";
 	    public static final String PUT_UNDER_MAINTENANCE="putUnderMaintenance";
 	    
+	    public static final String SESSION_OPERATION="sessionOperation";
 	    public static final String TYPE_OPERATION="opType";
 	    public static final String GET_SEVERITIES = "getSeverities";
 	    public static final String GET_TYPES = "getTypes";

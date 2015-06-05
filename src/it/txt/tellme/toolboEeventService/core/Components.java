@@ -4,6 +4,7 @@ import it.txt.tellme.toolboEeventService.core.common.Constants;
 import it.txt.tellme.toolboEeventService.core.common.DatabaseManager;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Map;
@@ -116,5 +117,54 @@ public class Components extends ServerResource{
 				if (rs != null) try { rs.close(); } catch(Exception e) {}
 			}
 			return repReturn;
+		}
+		
+		
+		private void updateMTBFAfterReplace(String idComponent)
+		{
+			ResultSet component = null;
+			ResultSet numberOfWarnings = null;
+			// Declare the JDBC objects.
+
+			try {
+				//connection to db
+				Connection conn=DatabaseManager.connectToDatabase();
+							
+				//query to find issues of the specified session
+				String query = "SELECT components.* FROM components  WHERE components.id_component="+idComponent;
+				Statement st = conn.createStatement();
+				component=st.executeQuery(query);
+				component.next();
+			
+				System.out.println("Update mtbf for replace");
+				
+				query = "SELECT count(*) AS n FROM issues WHERE issues.cau_war='w' AND (issues.state='open' OR issues.state='fixed') AND issues.component="+component.getInt("id_component");
+				st = conn.createStatement();
+				numberOfWarnings=st.executeQuery(query);
+				numberOfWarnings.next();
+				
+				float mtbf=component.getFloat("mtbf");
+				float lifeTime=component.getFloat("life_time");
+				int warningCount=numberOfWarnings.getInt("n");
+				
+				mtbf=((mtbf*(warningCount-1))+lifeTime)/warningCount;
+				
+				query="UPDATE components SET mtbf = ? WHERE components.id_component = ?";
+				
+				PreparedStatement preparedStmt = conn.prepareStatement(query);
+				preparedStmt.setFloat(1, mtbf);
+				preparedStmt.setString(2, component.getString("id_component"));
+				preparedStmt.executeUpdate();
+				preparedStmt.close(); 
+					
+				
+				DatabaseManager.disconnectFromDatabase(conn);
+			}catch (Exception e) {
+				e.printStackTrace();
+			}
+			finally {
+				if (component != null) try { component.close(); } catch(Exception e) {e.printStackTrace();}
+			}
+			
 		}
 }

@@ -56,6 +56,7 @@ public class Sessions extends ServerResource{
 			//get informations of a session and relative pilot, instructor and simulator
 			System.out.println("Info of the session");
 			String sesId = queryMap.get(Constants.SESSION_ID);
+			
 			repReturn = getAllSessionData(sesId);
 		}
 		else if(queryMap.size()==3 && queryMap.containsKey(Constants.SIMULATOR_ID) && queryMap.containsKey(Constants.USER_ID) && queryMap.containsKey(Constants.DATE_NOW))
@@ -74,7 +75,16 @@ public class Sessions extends ServerResource{
 			String simId = queryMap.get(Constants.SIMULATOR_ID);
 			String startDate = queryMap.get(Constants.START_DATE);
 			String finishDate = queryMap.get(Constants.FINISH_DATE);
-			repReturn = getAllSessionsDataSimulator(simId, startDate, finishDate);
+			repReturn = getAllSessionsDataSimulatorBetweenDate(simId, startDate, finishDate);
+		}
+		else if(queryMap.size()==4 && queryMap.containsKey(Constants.SESSION_OPERATION) && queryMap.containsKey(Constants.SIMULATOR_ID) && queryMap.containsKey(Constants.START_DATE) && queryMap.containsKey(Constants.FINISH_DATE))
+		{
+			//get the session data of a simulator
+			System.out.println("check session between date");
+			String simId = queryMap.get(Constants.SIMULATOR_ID);
+			String startDate = queryMap.get(Constants.START_DATE);
+			String finishDate = queryMap.get(Constants.FINISH_DATE);
+			repReturn = checkScheduling(simId, startDate, finishDate);
 		}
 		else if(queryMap.size()==4 && queryMap.containsKey(Constants.USER_ID) && queryMap.containsKey(Constants.SIMULATOR_ID) && queryMap.containsKey(Constants.DATE_NOW) && queryMap.containsKey(Constants.LAST_SESSION))
 		{
@@ -102,6 +112,7 @@ public class Sessions extends ServerResource{
 		
 		return repReturn;
 	}
+
 
 
 	/**
@@ -153,12 +164,10 @@ public class Sessions extends ServerResource{
 			      		+ " (`id_session`,"
 			      		+ " `scheduled_start_time`,"
 			      		+ " `scheduled_finish_time`,"
-			      		+ " `effective_start_time`,"
-			      		+ " `effective_finish_time`,"
 			      		+ " `planned`,"
 			      		+ " `simulator`)"
 			      		+ " VALUES "
-			      		+ "(?,?,?,?,?,?,?)";
+			      		+ "(?,?,?,?,?)";
 			 
 			      // create the mysql insert preparedstatement
 			      PreparedStatement preparedStmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
@@ -166,10 +175,8 @@ public class Sessions extends ServerResource{
 			      preparedStmt.setNull(1, java.sql.Types.INTEGER);
 			      preparedStmt.setString(2, jsonSession.get("scheduled_start_time").getAsString());
 			      preparedStmt.setString(3, jsonSession.get("scheduled_finish_time").getAsString());
-			      preparedStmt.setString(4, jsonSession.get("scheduled_start_time").getAsString());
-			      preparedStmt.setString(5, jsonSession.get("scheduled_finish_time").getAsString());
-			      preparedStmt.setString(6, jsonSession.get("planned").getAsString());
-			      preparedStmt.setString(7, jsonSession.get("simulator").getAsString());
+			      preparedStmt.setString(4, jsonSession.get("planned").getAsString());
+			      preparedStmt.setString(5, jsonSession.get("simulator").getAsString());
 			      
 			      // execute the preparedstatement
 			      preparedStmt.execute();	
@@ -250,13 +257,13 @@ public class Sessions extends ServerResource{
 
 
 	/**
-	 * This method get all the session data of a simulator
+	 * This method get all the session data of a simulator between two dates
 	 * @param simId
 	 * @param finishDate 
 	 * @param startDate 
 	 * @return json with session data
 	 */
-	private Representation getAllSessionsDataSimulator(String simId, String startDate, String finishDate) {
+	private Representation getAllSessionsDataSimulatorBetweenDate(String simId, String startDate, String finishDate) {
 		
 		ResultSet rs = null;
 		Representation repReturn = null;
@@ -481,28 +488,40 @@ public class Sessions extends ServerResource{
 		ResultSet rs = null;
 		Representation repReturn = null;
 		// Declare the JDBC objects.
-
+		
 		try {
 			//connection to db
 			Connection conn=DatabaseManager.connectToDatabase();
 						
-			//query to find session with specified id user and id simulator
-			String query = "SELECT sessions.id_session, sessions.scheduled_start_time, sessions.scheduled_finish_time FROM users, partecipants, sessions WHERE users.id_user=partecipants.id_user and sessions.id_session=partecipants.id_session and users.id_user="+userId+" and sessions.simulator="+simId+" AND DATE(sessions.scheduled_start_time)>=DATE('"+startDate+"') AND DATE(sessions.scheduled_finish_time)<=DATE('"+finishDate+"') GROUP BY sessions.id_session ORDER BY sessions.scheduled_start_time";
+			//query to find session with specified id
+			String query = "SELECT * FROM users, partecipants, sessions WHERE users.id_user="+userId+" AND users.id_user=partecipants.id_user AND users.id_user=partecipants.id_user and sessions.id_session=partecipants.id_session and sessions.simulator="+simId+" AND DATE(sessions.scheduled_start_time)>=DATE('"+startDate+"') AND DATE(sessions.scheduled_finish_time)<=DATE('"+finishDate+"') ORDER BY sessions.scheduled_start_time ";
 			Statement st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
-			// Iterate through the data in the result set and display it.
+			
 			JsonArray sessionList = new JsonArray();
+			JsonObject jsonSession = new JsonObject();
 			while (rs.next()) {
-				JsonObject jsonSession = new JsonObject();
+				
+				jsonSession = new JsonObject();
+				//session info
 				jsonSession.addProperty("id_session", rs.getInt("id_session"));
 				jsonSession.addProperty("scheduled_start_time", rs.getString("scheduled_start_time"));
-				jsonSession.addProperty("scheduled_finish_time", rs.getString("scheduled_finish_time"));				
-				sessionList.add(jsonSession);				
+				jsonSession.addProperty("scheduled_finish_time", rs.getString("scheduled_finish_time"));
+				jsonSession.addProperty("effective_start_time", rs.getString("effective_start_time"));
+				jsonSession.addProperty("effective_finish_time", rs.getString("effective_finish_time"));
+				jsonSession.addProperty("number_of_issues",  getNumberOfIssuesOfSession(rs.getString("id_session")));
+				jsonSession.addProperty("id_user", rs.getString("id_user"));
+				jsonSession.addProperty("first_name", rs.getString("first_name"));
+				jsonSession.addProperty("last_name", rs.getString("last_name"));
+				jsonSession.addProperty("age", rs.getString("age"));
+				sessionList.add(jsonSession);
 			}
 			repReturn = new JsonRepresentation(sessionList.toString());
 			DatabaseManager.disconnectFromDatabase(conn);
-		}catch (Exception e) {
+		}
+		catch (Exception e) 
+		{
 			e.printStackTrace();
 		}
 		finally {
@@ -716,5 +735,54 @@ public class Sessions extends ServerResource{
 		
 	}
 	
+	
+	
+	
+	
+	/**
+	 * This method check if between the two dates there's a session for the id, and return his id
+	 * @param simId
+	 * @param startDate
+	 * @param finishDate
+	 * @return
+	 */
+	private Representation checkScheduling(String simId, String startDate,
+			String finishDate) {
+		
+		ResultSet rs = null;
+		Representation repReturn = null;
+		// Declare the JDBC objects.
+		
+		try {
+			//connection to db
+			Connection conn=DatabaseManager.connectToDatabase();
+						
+			//query to find session with specified id
+			String query = "SELECT sessions.id_session FROM sessions WHERE sessions.simulator="+simId+" AND (sessions.scheduled_start_time>=STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND sessions.scheduled_start_time<=STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s')) OR (sessions.scheduled_finish_time>=STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND sessions.scheduled_finish_time<=STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s')) OR (sessions.scheduled_start_time<=STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND sessions.scheduled_finish_time>=STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s'))";
+			Statement st = conn.createStatement();
+			rs=st.executeQuery(query);
+			
+			
+			JsonArray sessionList = new JsonArray();
+			JsonObject jsonSession = new JsonObject();
+			while (rs.next()) 
+			{
+				//session info
+				jsonSession.addProperty("id_session", rs.getInt("id_session"));
+				sessionList.add(jsonSession);
+			}
+			
+		
+		repReturn = new JsonRepresentation(sessionList.toString());
+		DatabaseManager.disconnectFromDatabase(conn);
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (rs != null) try { rs.close(); } catch(Exception e) {}
+		}
+		return repReturn;
+	}
+
 	
 }
