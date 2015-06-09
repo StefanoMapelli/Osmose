@@ -246,7 +246,7 @@ public class Issues extends ServerResource{
 			Statement st = conn.createStatement();
 			component=st.executeQuery(query);
 			component.next();
-			if(component.getString("cau_war").compareTo("w")==0)
+			if(component.getString("cau_war").compareTo("w")==0 && component.getString("state").compareTo("Broken")!=0)
 			{
 				System.out.println("Update mtbf for warning");
 				

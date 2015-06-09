@@ -54,7 +54,7 @@ public class Components extends ServerResource{
 		private Representation getComponentsData(String componentId) {
 			
 			ResultSet rs = null;
-			ResultSet rsMT = null;
+			ResultSet rsLT = null;
 			Representation repReturn = null;
 
 			try {
@@ -71,18 +71,17 @@ public class Components extends ServerResource{
 				JsonArray componentsList = new JsonArray();
 				while (rs.next()) {	
 					
-					JsonArray mtList = new JsonArray();
-					query = "SELECT components.mtbf, components.installation_date, components.mtbr FROM components WHERE components.simulator="+rs.getString("simulator")+" AND components.name='"+rs.getString("name")+"' ORDER BY components.installation_date";
+					JsonArray ltList = new JsonArray();
+					query = "SELECT components.life_time, components.installation_date FROM components WHERE components.simulator="+rs.getString("simulator")+" AND components.name='"+rs.getString("name")+"' ORDER BY components.installation_date";
 					Statement stMT = conn.createStatement();
-					rsMT=stMT.executeQuery(query);
+					rsLT=stMT.executeQuery(query);
 					
-					while(rsMT.next())
+					while(rsLT.next())
 					{
 						JsonObject mtObj = new JsonObject();
-						mtObj.addProperty("mtbr_value", rsMT.getString("mtbr"));
-						mtObj.addProperty("mtbf_value", rsMT.getString("mtbf"));
-						mtObj.addProperty("date", rsMT.getString("installation_date"));
-						mtList.add(mtObj);
+						mtObj.addProperty("life_time", rsLT.getString("life_time"));
+						mtObj.addProperty("date", rsLT.getString("installation_date"));
+						ltList.add(mtObj);
 					}
 					
 					JsonObject component = new JsonObject();
@@ -102,7 +101,7 @@ public class Components extends ServerResource{
 					component.addProperty("system", rs.getString("system_name"));
 					component.addProperty("simulator", rs.getString("simulator"));
 					component.addProperty("hw_sw", rs.getString("hw_sw"));
-					component.add("mtList", mtList);
+					component.add("ltList", ltList);
 					
 					componentsList.add(component);				
 				}
@@ -136,7 +135,7 @@ public class Components extends ServerResource{
 				component=st.executeQuery(query);
 				component.next();
 			
-				System.out.println("Update mtbf for replace");
+				System.out.println("Update mtbf for replacing");
 				
 				query = "SELECT count(*) AS n FROM issues WHERE issues.cau_war='w' AND (issues.state='open' OR issues.state='fixed') AND issues.component="+component.getInt("id_component");
 				st = conn.createStatement();

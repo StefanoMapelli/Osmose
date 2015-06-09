@@ -216,8 +216,8 @@ public class Maintenances extends ServerResource{
 			      preparedStmt.setNull(1, java.sql.Types.INTEGER);
 			      preparedStmt.setString(2, jsonSession.get("scheduled_start_time").getAsString());
 			      preparedStmt.setString(3, jsonSession.get("scheduled_finish_time").getAsString());
-			      preparedStmt.setNull(4, java.sql.Types.VARCHAR);
-			      preparedStmt.setNull(5, java.sql.Types.VARCHAR);
+			      preparedStmt.setString(4, jsonSession.get("scheduled_start_time").getAsString());
+			      preparedStmt.setString(5, jsonSession.get("scheduled_finish_time").getAsString());
 			      preparedStmt.setString(6, jsonSession.get("hw_sw").getAsString());
 			      preparedStmt.setString(7, jsonSession.get("description").getAsString());
 			      preparedStmt.setString(8, jsonSession.get("simulator").getAsString());

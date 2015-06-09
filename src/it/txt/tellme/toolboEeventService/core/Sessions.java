@@ -749,7 +749,8 @@ public class Sessions extends ServerResource{
 	private Representation checkScheduling(String simId, String startDate,
 			String finishDate) {
 		
-		ResultSet rs = null;
+		ResultSet rs1 = null;
+		ResultSet rs2 = null;
 		Representation repReturn = null;
 		// Declare the JDBC objects.
 		
@@ -760,15 +761,27 @@ public class Sessions extends ServerResource{
 			//query to find session with specified id
 			String query = "SELECT sessions.id_session FROM sessions WHERE sessions.simulator="+simId+" AND (sessions.scheduled_start_time>=STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND sessions.scheduled_start_time<=STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s')) OR (sessions.scheduled_finish_time>=STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND sessions.scheduled_finish_time<=STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s')) OR (sessions.scheduled_start_time<=STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND sessions.scheduled_finish_time>=STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s'))";
 			Statement st = conn.createStatement();
-			rs=st.executeQuery(query);
+			rs1=st.executeQuery(query);
+			
+			query = "SELECT maintenance.id_maintenance FROM maintenance WHERE maintenance.simulator="+simId+" AND (maintenance.scheduled_start_time>=STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND maintenance.scheduled_start_time<=STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s')) OR (maintenance.scheduled_finish_time>=STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND maintenance.scheduled_finish_time<=STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s')) OR (maintenance.scheduled_start_time<=STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND maintenance.scheduled_finish_time>=STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s'))";
+			st = conn.createStatement();
+			rs2=st.executeQuery(query);
 			
 			
 			JsonArray sessionList = new JsonArray();
-			JsonObject jsonSession = new JsonObject();
-			while (rs.next()) 
+			
+			while (rs1.next()) 
 			{
+				JsonObject jsonSession = new JsonObject();
 				//session info
-				jsonSession.addProperty("id_session", rs.getInt("id_session"));
+				jsonSession.addProperty("id_session", rs1.getInt("id_session"));
+				sessionList.add(jsonSession);
+			}
+			while (rs2.next()) 
+			{
+				JsonObject jsonSession = new JsonObject();
+				//maintenance info
+				jsonSession.addProperty("id_session", rs2.getInt("id_maintenance"));
 				sessionList.add(jsonSession);
 			}
 			
@@ -779,7 +792,7 @@ public class Sessions extends ServerResource{
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			if (rs1 != null) try { rs1.close(); } catch(Exception e) {}
 		}
 		return repReturn;
 	}

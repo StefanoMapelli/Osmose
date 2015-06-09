@@ -51,27 +51,31 @@ public class Types extends ServerResource{
 				repReturn=getTypeObjects();
 				System.out.println("Get type objects");
 			}
-			else if(queryMap.get(Constants.TYPE_OPERATION).compareTo(Constants.GET_SYSTEMS)==0)
-			{
+		}
+		else if(queryMap.size()==2 && queryMap.get(Constants.TYPE_OPERATION).compareTo(Constants.GET_SYSTEMS)==0)
+		{
 				//get all system objects
-				repReturn=getSystemObjects();
+				String simId=queryMap.get(Constants.SIMULATOR_ID);
+				repReturn=getSystemObjects(simId);
 				System.out.println("Get system objects");
-			}
-		}	
-		else if(queryMap.size()==2 && queryMap.containsKey(Constants.TYPE_OPERATION))
+		}
+			
+		else if(queryMap.size()==3 && queryMap.containsKey(Constants.TYPE_OPERATION))
 		{
 			if(queryMap.get(Constants.TYPE_OPERATION).compareTo(Constants.GET_SUBSYSTEMS)==0)
 			{
 				//get all system objects
 				String systemName=queryMap.get(Constants.SYSTEM_NAME);
-				repReturn=getSubsystemObjects(systemName);
+				String simId=queryMap.get(Constants.SIMULATOR_ID);
+				repReturn=getSubsystemObjects(systemName, simId);
 				System.out.println("Get subsystem objects");
 			} 
 			else if(queryMap.get(Constants.TYPE_OPERATION).compareTo(Constants.GET_COMPONENTS)==0)
 			{
 				//get all system objects
 				String subsystemName=queryMap.get(Constants.SUBSYSTEM_NAME);
-				repReturn=getComponentObjects(subsystemName);
+				String simId=queryMap.get(Constants.SIMULATOR_ID);
+				repReturn=getComponentObjects(subsystemName, simId);
 				System.out.println("Get component objects");
 			}
 		}
@@ -89,7 +93,7 @@ public class Types extends ServerResource{
 	 * @param subsystemName: specified subsystem
 	 * @return json with info
 	 */
-	private Representation getComponentObjects(String subsystemName) {
+	private Representation getComponentObjects(String subsystemName, String simId) {
 		
 		ResultSet rs = null;
 		Representation repReturn = null;
@@ -98,7 +102,7 @@ public class Types extends ServerResource{
 			//connection to db
 			Connection conn=DatabaseManager.connectToDatabase();
 						
-			String query = "SELECT components.name FROM subsystems, components WHERE subsystems.id_subsystem=components.subsystem AND subsystems.name='"+subsystemName+"'";
+			String query = "SELECT components.name FROM subsystems, components WHERE components.simulator="+simId+" AND (components.component_state='Broken' OR components.component_state='Installed') AND subsystems.id_subsystem=components.subsystem AND subsystems.name='"+subsystemName+"'";
 			Statement st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
@@ -127,7 +131,7 @@ public class Types extends ServerResource{
 	 * This method returns all the tuples of the table subsystems with specified system
 	 * @return json
 	 */
-	private Representation getSubsystemObjects(String systemName) {
+	private Representation getSubsystemObjects(String systemName, String simId) {
 		
 		ResultSet rs = null;
 		Representation repReturn = null;
@@ -137,7 +141,7 @@ public class Types extends ServerResource{
 			Connection conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issue with specified id
-			String query = "SELECT subsystems.name FROM subsystems, systems WHERE subsystems.system=systems.id_system AND systems.name='"+systemName+"'";
+			String query = "SELECT subsystems.name FROM components, subsystems, systems WHERE components.subsystem=subsystems.id_subsystem AND components.simulator="+simId+" AND subsystems.system=systems.id_system AND systems.name='"+systemName+"' GROUP BY subsystems.name";
 			Statement st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
@@ -166,7 +170,7 @@ public class Types extends ServerResource{
 	 * This method returns all the tuples of the table systems
 	 * @return json
 	 */
-	private Representation getSystemObjects() {
+	private Representation getSystemObjects(String simId) {
 		
 		
 		ResultSet rs = null;
@@ -177,7 +181,7 @@ public class Types extends ServerResource{
 			Connection conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issue with specified id
-			String query = "SELECT name FROM systems";
+			String query = "SELECT systems.name FROM systems, subsystems, components WHERE systems.id_system=subsystems.system AND subsystems.id_subsystem=components.subsystem AND components.simulator="+simId+" GROUP BY systems.name";
 			Statement st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
