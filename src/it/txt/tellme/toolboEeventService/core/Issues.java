@@ -1098,7 +1098,7 @@ public class Issues extends ServerResource{
 			
 			String idComponent = getIdComponent(jsonIssue.get("component").getAsString());
 			
-			if(idComponent.compareTo(Constants.NONE)!=0)
+			if(jsonIssue.get("component").getAsString().compareTo(Constants.NONE)!=0)
 			{
 				preparedStmt.setString(6, idComponent);
 			}
