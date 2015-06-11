@@ -1117,7 +1117,7 @@ public class Issues extends ServerResource{
 			preparedStmt.executeUpdate();
 			preparedStmt.close(); 
 			
-			if(idComponent.compareTo(Constants.NONE)!=0)
+			if(jsonIssue.get("component").getAsString().compareTo(Constants.NONE)!=0)
 			{
 				updateComponentState(idComponent,"Broken");
 			}
