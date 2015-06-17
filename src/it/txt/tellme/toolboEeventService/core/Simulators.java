@@ -175,7 +175,7 @@ public class Simulators extends ServerResource{
 			Connection conn=DatabaseManager.connectToDatabase();
 						
 			//query to find data of the components of the simulator
-			String query = "SELECT systems.name as system_name, subsystems.name as subsystem_name, components.name, components.id_component, components.component_state, components.life_time, components.expected_life_time FROM systems, subsystems, components WHERE systems.id_system=subsystems.system AND subsystems.id_subsystem=components.subsystem AND (components.component_state='Installed' OR components.component_state='Broken') AND components.simulator="+simId;
+			String query = "SELECT systems.name as system_name, subsystems.name as subsystem_name, components.name, components.id_component, components.component_state, components.life_time, components.mtbf FROM systems, subsystems, components WHERE systems.id_system=subsystems.system AND subsystems.id_subsystem=components.subsystem AND (components.component_state='Installed' OR components.component_state='Broken') AND components.simulator="+simId;
 			Statement st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
@@ -191,11 +191,11 @@ public class Simulators extends ServerResource{
 				jsonComponent.addProperty("subsystem_name", rs.getString("subsystem_name"));
 				//if the life time is near to expected life time we put alert as state
 				double life=Float.parseFloat(rs.getString("life_time"));
-				double expLife=Float.parseFloat(rs.getString("expected_life_time"))-(Float.parseFloat(rs.getString("expected_life_time"))*0.1);
+				double mtbf=Float.parseFloat(rs.getString("mtbf"));
 				
 				if(rs.getString("component_state").compareTo("Broken")==0)
 					jsonComponent.addProperty("state", rs.getString("component_state"));
-				else if(life>expLife)
+				else if(life>mtbf)
 					jsonComponent.addProperty("state", "alert");
 				else
 					jsonComponent.addProperty("state", rs.getString("component_state"));

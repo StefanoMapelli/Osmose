@@ -44,6 +44,15 @@ public class Maintenances extends ServerResource{
 			String finishDate = queryMap.get(Constants.FINISH_DATE);
 			repReturn = getAllMaintenanceDataSimulator(simId, startDate, finishDate);
 		}
+		else if(queryMap.size()==4 && queryMap.containsKey(Constants.COMPONENT_ID) && queryMap.containsKey(Constants.SIMULATOR_ID) && queryMap.containsKey(Constants.START_DATE) && queryMap.containsKey(Constants.FINISH_DATE))
+		{
+			System.out.println("Get maintenance of a simulator");
+			String simId = queryMap.get(Constants.SIMULATOR_ID);
+			String startDate = queryMap.get(Constants.START_DATE);
+			String finishDate = queryMap.get(Constants.FINISH_DATE);
+			String compId = queryMap.get(Constants.COMPONENT_ID);
+			repReturn = getAllMaintenancesOfComponent(simId, startDate, finishDate, compId);
+		}
 		else
 		{
 			setStatus(Status.CLIENT_ERROR_BAD_REQUEST);
@@ -56,6 +65,12 @@ public class Maintenances extends ServerResource{
 	
 	
 	
+	
+
+
+
+
+
 	/**
 	 * POST method
 	 */
@@ -75,6 +90,56 @@ public class Maintenances extends ServerResource{
 		else
 		{
 			setStatus(Status.CLIENT_ERROR_BAD_REQUEST);
+		}
+		return repReturn;
+	}
+	
+	
+	/**
+	 * 
+	 * @param simId
+	 * @param startDate
+	 * @param finishDate
+	 * @param compId
+	 * @return
+	 */
+	private Representation getAllMaintenancesOfComponent(String simId,
+			String startDate, String finishDate, String compId) {
+		
+		ResultSet rs = null;
+		Representation repReturn = null;
+		// Declare the JDBC objects.
+
+		try {
+			//connection to db
+			Connection conn=DatabaseManager.connectToDatabase();
+						
+			//query to find maintenance of the specified simulator
+			String query = "SELECT * FROM maintenance, components WHERE maintenance.simulator="+simId+" AND components.id_component="+compId+" AND  components.id_component=maintenance.component AND DATE(maintenance.scheduled_start_time)>=DATE('"+startDate+"') AND DATE(maintenance.scheduled_finish_time)<=DATE('"+finishDate+"') ORDER BY maintenance.scheduled_start_time ";
+			Statement st = conn.createStatement();
+			rs=st.executeQuery(query);
+			
+			// Iterate through the data in the result set and display it.
+			JsonArray sessionList = new JsonArray();
+			while (rs.next()) {
+				JsonObject jsonSession = new JsonObject();
+				jsonSession.addProperty("id_maintenance", rs.getInt("id_maintenance"));
+				jsonSession.addProperty("scheduled_start_time", rs.getString("scheduled_start_time"));
+				jsonSession.addProperty("scheduled_finish_time", rs.getString("scheduled_finish_time"));				
+				jsonSession.addProperty("effective_start_time", rs.getString("effective_start_time"));
+				jsonSession.addProperty("effective_finish_time", rs.getString("effective_finish_time"));				
+				jsonSession.addProperty("description", rs.getString("description"));
+				jsonSession.addProperty("hw_sw", rs.getString("hw_sw"));		
+				jsonSession.addProperty("component", rs.getString("name"));		
+				sessionList.add(jsonSession);				
+			}
+			repReturn = new JsonRepresentation(sessionList.toString());
+			DatabaseManager.disconnectFromDatabase(conn);
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (rs != null) try { rs.close(); } catch(Exception e) {}
 		}
 		return repReturn;
 	}
@@ -201,14 +266,12 @@ public class Maintenances extends ServerResource{
 			      		+ " (`id_maintenance`,"
 			      		+ " `scheduled_start_time`,"
 			      		+ " `scheduled_finish_time`,"
-			      		+ " `effective_start_time`,"
-			      		+ " `effective_finish_time`,"
 			      		+ " `hw_sw`,"
 			      		+ " `description`,"
 			      		+ " `simulator`,"
 			      		+ " `component`)"
 			      		+ " VALUES "
-			      		+ "(?,?,?,?,?,?,?,?,?)";
+			      		+ "(?,?,?,?,?,?,?)";
 			 
 			      // create the mysql insert preparedstatement
 			      PreparedStatement preparedStmt = conn.prepareStatement(query);
@@ -216,12 +279,10 @@ public class Maintenances extends ServerResource{
 			      preparedStmt.setNull(1, java.sql.Types.INTEGER);
 			      preparedStmt.setString(2, jsonSession.get("scheduled_start_time").getAsString());
 			      preparedStmt.setString(3, jsonSession.get("scheduled_finish_time").getAsString());
-			      preparedStmt.setString(4, jsonSession.get("scheduled_start_time").getAsString());
-			      preparedStmt.setString(5, jsonSession.get("scheduled_finish_time").getAsString());
-			      preparedStmt.setString(6, jsonSession.get("hw_sw").getAsString());
-			      preparedStmt.setString(7, jsonSession.get("description").getAsString());
-			      preparedStmt.setString(8, jsonSession.get("simulator").getAsString());
-			      preparedStmt.setString(9, jsonSession.get("component").getAsString());
+			      preparedStmt.setString(4, jsonSession.get("hw_sw").getAsString());
+			      preparedStmt.setString(5, jsonSession.get("description").getAsString());
+			      preparedStmt.setString(6, jsonSession.get("simulator").getAsString());
+			      preparedStmt.setString(7, jsonSession.get("component").getAsString());
 			      
 			      // execute the preparedstatement
 			      preparedStmt.execute();	
