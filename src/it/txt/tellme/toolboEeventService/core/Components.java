@@ -4,7 +4,6 @@ import it.txt.tellme.toolboEeventService.core.common.Constants;
 import it.txt.tellme.toolboEeventService.core.common.DatabaseManager;
 
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Map;
@@ -118,7 +117,7 @@ public class Components extends ServerResource{
 			return repReturn;
 		}
 		
-		
+	/*	
 		private void updateMTBFAfterReplace(String idComponent)
 		{
 			ResultSet component = null;
@@ -165,5 +164,5 @@ public class Components extends ServerResource{
 				if (component != null) try { component.close(); } catch(Exception e) {e.printStackTrace();}
 			}
 			
-		}
+		}*/
 }

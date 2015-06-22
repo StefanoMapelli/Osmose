@@ -232,11 +232,7 @@ public class Issues extends ServerResource{
 
 	private void updateMTBF(String issueId) {
 		
-		
 		ResultSet component = null;
-		ResultSet numberOfWarnings = null;
-		// Declare the JDBC objects.
-
 		try {
 			//connection to db
 			Connection conn=DatabaseManager.connectToDatabase();
@@ -249,26 +245,17 @@ public class Issues extends ServerResource{
 			if(component.getString("cau_war").compareTo("w")==0 && component.getString("state").compareTo("Broken")!=0)
 			{
 				System.out.println("Update mtbf for warning");
+				float mtbf=component.getFloat("life_time");
 				
-				query = "SELECT count(*) AS n FROM issues WHERE issues.cau_war='w' AND (issues.state='open' OR issues.state='fixed') AND issues.component="+component.getInt("id_component");
-				st = conn.createStatement();
-				numberOfWarnings=st.executeQuery(query);
-				numberOfWarnings.next();
-				
-				float mtbf=component.getFloat("mtbf");
-				float lifeTime=component.getFloat("life_time");
-				int warningCount=numberOfWarnings.getInt("n");
-				
-				mtbf=((mtbf*(warningCount-1))+lifeTime)/warningCount;
-				
-				query="UPDATE components SET mtbf = ? WHERE components.id_component = ?";
-				
-				PreparedStatement preparedStmt = conn.prepareStatement(query);
-				preparedStmt.setFloat(1, mtbf);
-				preparedStmt.setString(2, component.getString("id_component"));
-				preparedStmt.executeUpdate();
-				preparedStmt.close(); 
-				
+				if(component.getFloat("mtbf")>component.getFloat("life_time"))
+				{
+					query="UPDATE components SET mtbf = ? WHERE components.id_component = ?";
+					PreparedStatement preparedStmt = conn.prepareStatement(query);
+					preparedStmt.setFloat(1, mtbf);
+					preparedStmt.setString(2, component.getString("id_component"));
+					preparedStmt.executeUpdate();
+					preparedStmt.close(); 
+				}
 			}
 			DatabaseManager.disconnectFromDatabase(conn);
 		}catch (Exception e) {

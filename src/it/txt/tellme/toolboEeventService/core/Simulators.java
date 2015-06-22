@@ -175,7 +175,7 @@ public class Simulators extends ServerResource{
 			Connection conn=DatabaseManager.connectToDatabase();
 						
 			//query to find data of the components of the simulator
-			String query = "SELECT systems.name as system_name, subsystems.name as subsystem_name, components.name, components.id_component, components.component_state, components.life_time, components.mtbf FROM systems, subsystems, components WHERE systems.id_system=subsystems.system AND subsystems.id_subsystem=components.subsystem AND (components.component_state='Installed' OR components.component_state='Broken') AND components.simulator="+simId;
+			String query = "SELECT systems.name as system_name, subsystems.name as subsystem_name, components.name, components.id_component, components.component_state, components.life_time, components.mtbf, components.hw_sw FROM systems, subsystems, components WHERE systems.id_system=subsystems.system AND subsystems.id_subsystem=components.subsystem AND (components.component_state='Installed' OR components.component_state='Broken') AND components.simulator="+simId;
 			Statement st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
@@ -195,7 +195,7 @@ public class Simulators extends ServerResource{
 				
 				if(rs.getString("component_state").compareTo("Broken")==0)
 					jsonComponent.addProperty("state", rs.getString("component_state"));
-				else if(life>mtbf)
+				else if(life>mtbf && rs.getString("hw_sw").compareTo("h")==0)
 					jsonComponent.addProperty("state", "alert");
 				else
 					jsonComponent.addProperty("state", rs.getString("component_state"));
