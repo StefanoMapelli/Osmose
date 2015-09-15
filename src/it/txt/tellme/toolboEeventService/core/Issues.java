@@ -431,6 +431,10 @@ public class Issues extends ServerResource{
 			      rs=preparedStmt.getGeneratedKeys();
 			      rs.next();
 			      
+			      JsonObject idIssue = new JsonObject();
+			      idIssue.addProperty("id_issue", rs.getString(1));
+			      repReturn = new JsonRepresentation(idIssue.toString());
+			      
 			    //insert images of the issue
 			      if(rs!=null && jsonIssue.get("images")!=null)
 			      {
