@@ -91,6 +91,8 @@ public class Constants {
 		public static final String USERNAME = "username";
 		public static final String PASSWORD = "password";
 		
+		public static final String DEFAULT_INSTRUCTOR_ID = "7";
+		public static final String DEFAULT_PILOT_ID = "8";
 		
 		
 		

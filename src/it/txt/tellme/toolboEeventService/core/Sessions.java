@@ -186,13 +186,21 @@ public class Sessions extends ServerResource{
 			      rs=preparedStmt.getGeneratedKeys();
 			      rs.next();
 			      
+			      
 			    //insert pilot and instructor to the session
 			      if(rs!=null)
 			      {
+			    	  //if pilot id or instructor id are 0 we use the default user
+			    	  if(jsonSession.get("instructor").getAsString().compareTo("0")==0)
+			    		  addPartecipantToSession(rs.getString(1), Constants.DEFAULT_INSTRUCTOR_ID) ;
+			    	  else
+			    		  addPartecipantToSession(rs.getString(1), jsonSession.get("instructor").getAsString()) ;
+			    	  if(jsonSession.get("pilot").getAsString().compareTo("0")==0)
+			    		  addPartecipantToSession(rs.getString(1), Constants.DEFAULT_PILOT_ID) ;
+			    	  else
+			    		  addPartecipantToSession(rs.getString(1), jsonSession.get("pilot").getAsString()) ;
+			    	  repReturn = new StringRepresentation(rs.getString(1));
 			    	  
-			    	  addPartecipantToSession(rs.getString(1), jsonSession.get("instructor").getAsString()) ;
-			    	  addPartecipantToSession(rs.getString(1), jsonSession.get("pilot").getAsString()) ;
-			    	
 			      }			      
 			      DatabaseManager.disconnectFromDatabase(conn);
 			    	  
