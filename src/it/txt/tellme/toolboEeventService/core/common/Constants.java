@@ -88,6 +88,8 @@ public class Constants {
 		
 		public static final String PICTURES_FOLDER_PATH="C:\\OsmoseMedia\\pictures\\";
 		public static final String AUDIO_FOLDER_PATH="C:\\OsmoseMedia\\audios\\";
+		public static final String USERNAME = "username";
+		public static final String PASSWORD = "password";
 		
 		
 		
