@@ -19,7 +19,6 @@ import org.restlet.resource.ServerResource;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-
 /**
  * 
  * Class for return the data of the session
@@ -131,7 +130,16 @@ public class Sessions extends ServerResource{
 			repReturn = addSession(entity);
 			System.out.println("Insert new session");
 		}
-		else
+		else if(queryMap.size()==1 )
+		{
+			if(queryMap.get(Constants.SESSION_OPERATION).compareTo(Constants.UPDATE_FINISH_TIME)==0)
+			{
+				//change description of an issue
+				repReturn = updateEndTimeSession(entity);
+				System.out.println("Update finish time");
+			}
+		}
+		else	
 		{
 			setStatus(Status.CLIENT_ERROR_BAD_REQUEST);
 		}
@@ -803,6 +811,47 @@ public class Sessions extends ServerResource{
 			if (rs1 != null) try { rs1.close(); } catch(Exception e) {}
 		}
 		return repReturn;
+	}
+	
+	
+	/**
+	 * This method update the end time of a session specified by the id
+	 * @param issueId
+	 * @return 
+	 */
+	private Representation updateEndTimeSession(Representation entity) {
+		
+		Representation repReturn = null;
+		String sessionId;
+		String endTime;
+		JsonParser jsonParser = new JsonParser();
+		try 
+		{
+			JsonObject jsonSession = jsonParser.parse(entity.getText()).getAsJsonObject();
+			sessionId=jsonSession.get("id_session").getAsString();
+			endTime=jsonSession.get("end_time").getAsString();
+			try {
+				//connection to db
+				Connection conn=DatabaseManager.connectToDatabase();
+							
+				//query to find issues of the specified session
+				String query="UPDATE sessions SET scheduled_finish_time = '"+endTime+"' WHERE sessions.id_session = "+sessionId;
+				PreparedStatement preparedStmt = conn.prepareStatement(query);
+				preparedStmt.executeUpdate();
+				preparedStmt.close(); 
+
+				DatabaseManager.disconnectFromDatabase(conn);
+			}catch (Exception e) {
+				e.printStackTrace();
+			}
+		} 
+		catch (Exception e) 
+		{
+			e.printStackTrace();
+		}
+		
+		return repReturn;
+		
 	}
 
 	
