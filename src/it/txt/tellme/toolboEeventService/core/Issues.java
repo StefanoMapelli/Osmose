@@ -462,6 +462,26 @@ public class Issues extends ServerResource{
 			    	  }
 			      }
 			      
+			      //if the issue is out of session time, update end time of the session and start time of an eventually next session
+			      if(!issueIsInTheSession(jsonIssue.get("raise_time").getAsString(), jsonIssue.get("session").getAsString()))
+			      {
+			    	  //if the issue is in a wrong session, the wrong session must be updated with the start time that become the raise time
+			    	  int wrongSession=issueInTheWrongSession(jsonIssue.get("raise_time").getAsString(),jsonIssue.get("session").getAsString());
+			    	  if(wrongSession>0)
+			    	  {
+			    		  query="UPDATE sessions SET scheduled_start_time = '"+jsonIssue.get("raise_time").getAsString()+"' WHERE sessions.id_session = "+wrongSession;
+				    	  preparedStmt = conn.prepareStatement(query);
+				    	  preparedStmt.executeUpdate();
+				    	  preparedStmt.close();
+			    	  }
+			    	  
+			    	  //update the finish time with the time of the issue
+			    	  query="UPDATE sessions SET scheduled_finish_time = '"+jsonIssue.get("raise_time").getAsString()+"' WHERE sessions.id_session = "+jsonIssue.get("session").getAsString();
+			    	  preparedStmt = conn.prepareStatement(query);
+			    	  preparedStmt.executeUpdate();
+			    	  preparedStmt.close(); 			    	  
+			      }
+			       
 			      DatabaseManager.disconnectFromDatabase(conn);
 			    	  
 			}catch (Exception e) {
@@ -475,6 +495,87 @@ public class Issues extends ServerResource{
 			}
 		}
 		return repReturn;
+	}
+	
+	
+	/**
+	 * This method returns true if the issue is in the time slot of the session, return false if the time is later than the end of the session
+	 *	@param issueTime
+	 *	@param sessionId
+	 * @return boolean with outcome
+	 */
+	private boolean issueIsInTheSession(String issueTime, String sessionId) {
+		
+		ResultSet rs = null;
+		// Declare the JDBC objects.
+
+		try {
+			//connection to db
+			Connection conn=DatabaseManager.connectToDatabase();
+						
+			//query to find session with specified id
+			String query = "SELECT * FROM sessions WHERE scheduled_finish_time>=STR_TO_DATE('"+issueTime+"','%Y-%m-%d %k:%i:%s') AND scheduled_start_time<=STR_TO_DATE('"+issueTime+"','%Y-%m-%d %k:%i:%s') AND id_session="+sessionId;
+			Statement st = conn.createStatement();
+			rs=st.executeQuery(query);
+			
+			// Iterate through the data in the result set and display it.
+			if(rs.next())
+			{
+				rs.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+				return true;
+			}
+			DatabaseManager.disconnectFromDatabase(conn);
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (rs != null) try { rs.close(); } catch(Exception e) {}
+		}
+		return false;
+		
+	}
+	
+	
+	
+	
+	
+	/**
+	 * This method returns the id of the wrong session or -1 if the issue hasn't problem with sessions
+	 *	@param issueTime  time of raising of the issue
+	 *	@param sessionId  id of the correct session
+	 * @return id of the wrong session or -1
+	 */
+	private int issueInTheWrongSession(String issueTime, String sessionId) {
+		
+		ResultSet rs = null;
+		// Declare the JDBC objects.
+
+		try {
+			//connection to db
+			Connection conn=DatabaseManager.connectToDatabase();
+						
+			//query to find session with specified id
+			String query = "SELECT * FROM sessions WHERE scheduled_finish_time>=STR_TO_DATE('"+issueTime+"','%Y-%m-%d %k:%i:%s') AND scheduled_start_time<=STR_TO_DATE('"+issueTime+"','%Y-%m-%d %k:%i:%s') AND id_session<>"+sessionId;
+			Statement st = conn.createStatement();
+			rs=st.executeQuery(query);
+			
+			// Iterate through the data in the result set and display it.
+			if(rs.next())
+			{
+				rs.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+				return rs.getInt("id_issue");
+			}
+			DatabaseManager.disconnectFromDatabase(conn);
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (rs != null) try { rs.close(); } catch(Exception e) {}
+		}
+		return -1;
+		
 	}
 	
 	

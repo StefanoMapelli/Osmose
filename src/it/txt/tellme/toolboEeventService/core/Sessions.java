@@ -78,12 +78,25 @@ public class Sessions extends ServerResource{
 		}
 		else if(queryMap.size()==4 && queryMap.containsKey(Constants.SESSION_OPERATION) && queryMap.containsKey(Constants.SIMULATOR_ID) && queryMap.containsKey(Constants.START_DATE) && queryMap.containsKey(Constants.FINISH_DATE))
 		{
-			//get the session data of a simulator
-			System.out.println("check session between date");
-			String simId = queryMap.get(Constants.SIMULATOR_ID);
-			String startDate = queryMap.get(Constants.START_DATE);
-			String finishDate = queryMap.get(Constants.FINISH_DATE);
-			repReturn = checkScheduling(simId, startDate, finishDate);
+			if(queryMap.get(Constants.SESSION_OPERATION).compareTo(Constants.CHECK_DATE)==0)
+			{
+				//check dates
+				System.out.println("check session between date");
+				String simId = queryMap.get(Constants.SIMULATOR_ID);
+				String startDate = queryMap.get(Constants.START_DATE);
+				String finishDate = queryMap.get(Constants.FINISH_DATE);
+				repReturn = checkScheduling(simId, startDate, finishDate);	
+			}
+			else if(queryMap.get(Constants.SESSION_OPERATION).compareTo(Constants.CHECK_DATE_EQUALS)==0)
+			{
+				//check dates for free session
+				System.out.println("check session between date with equals");
+				String simId = queryMap.get(Constants.SIMULATOR_ID);
+				String startDate = queryMap.get(Constants.START_DATE);
+				String finishDate = queryMap.get(Constants.FINISH_DATE);
+				repReturn = checkFreeSession(simId, startDate, finishDate);	
+			}
+			
 		}
 		else if(queryMap.size()==4 && queryMap.containsKey(Constants.USER_ID) && queryMap.containsKey(Constants.SIMULATOR_ID) && queryMap.containsKey(Constants.DATE_NOW) && queryMap.containsKey(Constants.LAST_SESSION))
 		{
@@ -751,6 +764,65 @@ public class Sessions extends ServerResource{
 		
 	}
 	
+	
+	
+	/**
+	 * This method check if between the two dates there's a session for the simulator id, and return his id
+	 * @param simId
+	 * @param startDate
+	 * @param finishDate
+	 * @return
+	 */
+	private Representation checkFreeSession(String simId, String startDate,
+			String finishDate) {
+		
+		ResultSet rs1 = null;
+		ResultSet rs2 = null;
+		Representation repReturn = null;
+		// Declare the JDBC objects.
+		
+		try {
+			//connection to db
+			Connection conn=DatabaseManager.connectToDatabase();
+						
+			//query to find session with specified id
+			String query = "SELECT sessions.id_session FROM sessions WHERE sessions.simulator="+simId+" AND (sessions.scheduled_start_time>=STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND sessions.scheduled_start_time<=STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s')) OR (sessions.scheduled_finish_time>=STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND sessions.scheduled_finish_time<=STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s')) OR (sessions.scheduled_start_time<=STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND sessions.scheduled_finish_time>=STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s')) OR (sessions.scheduled_start_time=STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND sessions.scheduled_finish_time=STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s'))";
+			Statement st = conn.createStatement();
+			rs1=st.executeQuery(query);
+			
+			query = "SELECT maintenance.id_maintenance FROM maintenance WHERE maintenance.simulator="+simId+" AND (maintenance.scheduled_start_time>=STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND maintenance.scheduled_start_time<=STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s')) OR (maintenance.scheduled_finish_time>=STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND maintenance.scheduled_finish_time<=STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s')) OR (maintenance.scheduled_start_time<=STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND maintenance.scheduled_finish_time>=STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s')) OR (maintenance.scheduled_start_time=STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND maintenance.scheduled_finish_time=STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s'))";
+			st = conn.createStatement();
+			rs2=st.executeQuery(query);
+			
+			
+			JsonArray sessionList = new JsonArray();
+			
+			while (rs1.next()) 
+			{
+				JsonObject jsonSession = new JsonObject();
+				//session info
+				jsonSession.addProperty("id_session", rs1.getInt("id_session"));
+				sessionList.add(jsonSession);
+			}
+			while (rs2.next()) 
+			{
+				JsonObject jsonSession = new JsonObject();
+				//maintenance info
+				jsonSession.addProperty("id_session", rs2.getInt("id_maintenance"));
+				sessionList.add(jsonSession);
+			}
+			
+		
+		repReturn = new JsonRepresentation(sessionList.toString());
+		DatabaseManager.disconnectFromDatabase(conn);
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (rs1 != null) try { rs1.close(); } catch(Exception e) {}
+		}
+		return repReturn;
+	}
 	
 	
 	

@@ -73,6 +73,8 @@ public class Constants {
 		public static final String GET_USER_ROLE = "userRole";
 		public static final String LAST_SESSION = "lastSession";
 		public static final String DATE_NOW = "dateNow";
+		public static final String CHECK_DATE="checkDate";
+		public static final String CHECK_DATE_EQUALS="checkDateEquals";
 	    
 	    
 	    public static final String SESSION_DATA_INIT="sessionData";
