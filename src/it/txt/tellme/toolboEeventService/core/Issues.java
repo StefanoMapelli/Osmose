@@ -469,6 +469,7 @@ public class Issues extends ServerResource{
 			    	  int wrongSession=issueInTheWrongSession(jsonIssue.get("raise_time").getAsString(),jsonIssue.get("session").getAsString());
 			    	  if(wrongSession>0)
 			    	  {
+			    		  
 			    		  query="UPDATE sessions SET scheduled_start_time = '"+jsonIssue.get("raise_time").getAsString()+"' WHERE sessions.id_session = "+wrongSession;
 				    	  preparedStmt = conn.prepareStatement(query);
 				    	  preparedStmt.executeUpdate();
@@ -523,7 +524,6 @@ public class Issues extends ServerResource{
 			{
 				rs.close();
 				DatabaseManager.disconnectFromDatabase(conn);
-				System.out.println("-----------------Lo snag è nella sessione: true");
 				return true;
 			}
 			DatabaseManager.disconnectFromDatabase(conn);
@@ -533,7 +533,6 @@ public class Issues extends ServerResource{
 		finally {
 			if (rs != null) try { rs.close(); } catch(Exception e) {}
 		}
-		System.out.println("-----------------Lo snag è nella sessione: false");
 		return false;
 		
 	}
@@ -565,9 +564,10 @@ public class Issues extends ServerResource{
 			// Iterate through the data in the result set and display it.
 			if(rs.next())
 			{
+				int result=rs.getInt("id_session");
 				rs.close();
 				DatabaseManager.disconnectFromDatabase(conn);
-				return rs.getInt("id_issue");
+				return result;
 			}
 			DatabaseManager.disconnectFromDatabase(conn);
 		}catch (Exception e) {
