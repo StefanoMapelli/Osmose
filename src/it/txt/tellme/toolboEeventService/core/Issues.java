@@ -514,7 +514,7 @@ public class Issues extends ServerResource{
 			Connection conn=DatabaseManager.connectToDatabase();
 						
 			//query to find session with specified id
-			String query = "SELECT * FROM sessions WHERE scheduled_finish_time>=STR_TO_DATE('"+issueTime+"','%Y-%m-%d %k:%i:%s') AND scheduled_start_time<=STR_TO_DATE('"+issueTime+"','%Y-%m-%d %k:%i:%s') AND id_session="+sessionId;
+			String query = "SELECT * FROM sessions WHERE scheduled_finish_time>=STR_TO_DATE('"+issueTime+"','%Y.%m.%d %k:%i:%s') AND scheduled_start_time<=STR_TO_DATE('"+issueTime+"','%Y.%m.%d %k:%i:%s') AND id_session="+sessionId;
 			Statement st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
@@ -523,6 +523,7 @@ public class Issues extends ServerResource{
 			{
 				rs.close();
 				DatabaseManager.disconnectFromDatabase(conn);
+				System.out.println("-----------------Lo snag è nella sessione: true");
 				return true;
 			}
 			DatabaseManager.disconnectFromDatabase(conn);
@@ -532,6 +533,7 @@ public class Issues extends ServerResource{
 		finally {
 			if (rs != null) try { rs.close(); } catch(Exception e) {}
 		}
+		System.out.println("-----------------Lo snag è nella sessione: false");
 		return false;
 		
 	}
@@ -556,7 +558,7 @@ public class Issues extends ServerResource{
 			Connection conn=DatabaseManager.connectToDatabase();
 						
 			//query to find session with specified id
-			String query = "SELECT * FROM sessions WHERE scheduled_finish_time>=STR_TO_DATE('"+issueTime+"','%Y-%m-%d %k:%i:%s') AND scheduled_start_time<=STR_TO_DATE('"+issueTime+"','%Y-%m-%d %k:%i:%s') AND id_session<>"+sessionId;
+			String query = "SELECT * FROM sessions WHERE scheduled_finish_time>=STR_TO_DATE('"+issueTime+"','%Y.%m.%d %k:%i:%s') AND scheduled_start_time<=STR_TO_DATE('"+issueTime+"','%Y.%m.%d %k:%i:%s') AND id_session<>"+sessionId;
 			Statement st = conn.createStatement();
 			rs=st.executeQuery(query);
 			

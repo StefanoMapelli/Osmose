@@ -100,7 +100,7 @@ public class Sessions extends ServerResource{
 		}
 		else if(queryMap.size()==4 && queryMap.containsKey(Constants.USER_ID) && queryMap.containsKey(Constants.SIMULATOR_ID) && queryMap.containsKey(Constants.DATE_NOW) && queryMap.containsKey(Constants.LAST_SESSION))
 		{
-			//get the session data of a simulator
+			//get the last session data of a simulator
 			System.out.println("get sessions data of a simulator");
 			String simId = queryMap.get(Constants.SIMULATOR_ID);
 			String userId = queryMap.get(Constants.USER_ID);
@@ -506,7 +506,7 @@ public class Sessions extends ServerResource{
 
 
 	/**
-	 * This method returns all the sessions data of the specified user in the db
+	 * This method returns all the sessions data of the specified user in the db on the selected simulator
 	 * @param userId : the ID of the user
 	 * @param finishDate 
 	 * @param startDate 
