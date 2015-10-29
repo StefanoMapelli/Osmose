@@ -58,6 +58,8 @@ public class Constants {
 	    public static final String GET_AUDIOS="getAudio";
 	    public static final String DELETE_ISSUE="deleteIssue";
 	    public static final String PUT_UNDER_MAINTENANCE="putUnderMaintenance";
+	    public static final String FIX_ISSUE = "fixIssue";
+	    public static final String REJECT_ISSUE = "rejectIssue";
 	    public static final String UPDATE_FINISH_TIME = "updateFinishTime";
 	    
 	    public static final String SESSION_OPERATION="sessionOperation";
@@ -88,6 +90,8 @@ public class Constants {
 		public static final String TYPE_GENERIC = "Generic";
 		public static final String SEVERITY_MODERATE = "Moderate";
 		public static final String STATE_OPEN="open";
+		public static final String STATE_FIXED = "fixed";
+		public static final String STATE_REJECTED = "rejected";
 		
 		public static final String PICTURES_FOLDER_PATH="C:\\OsmoseMedia\\pictures\\";
 		public static final String AUDIO_FOLDER_PATH="C:\\OsmoseMedia\\audios\\";
@@ -96,6 +100,7 @@ public class Constants {
 		
 		public static final String DEFAULT_INSTRUCTOR_ID = "7";
 		public static final String DEFAULT_PILOT_ID = "8";
+		
 		
 		
 		

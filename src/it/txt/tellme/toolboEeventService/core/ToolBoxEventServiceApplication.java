@@ -19,14 +19,10 @@
  *
  *
  * Authors:
- *     Sancesario Raffaele (TXT e-solutions SpA)
- *
- * Contributors:
- *      Domenico Rotondi (TXT e-solutions SpA)
+ *     Stefano Mapelli (TXT e-solutions SpA)
  *******************************************************************************/
 
 package it.txt.tellme.toolboEeventService.core;
-
 
 
 import org.restlet.Application;
@@ -41,12 +37,11 @@ public class ToolBoxEventServiceApplication extends Application
 	
     
 	public static void main(String[] args) throws Exception {
-        Component c = new Component();
+		Component c = new Component();
         c.getServers().add(Protocol.HTTP, 8182);
         c.getClients().add(Protocol.CLAP);
         c.getDefaultHost().attach(new ToolBoxEventServiceApplication());
         c.start();
-  
     }
  
 	
@@ -54,8 +49,7 @@ public class ToolBoxEventServiceApplication extends Application
     public Restlet createInboundRoot() 
     {
         Router router = new Router(getContext());
-    	
-    	//osmose
+        //osmose
         router.attach("/users", Users.class);
     	router.attach("/issues", Issues.class);
     	router.attach("/sessions", Sessions.class);
@@ -66,6 +60,4 @@ public class ToolBoxEventServiceApplication extends Application
     	
     	return router;
     }
-
-
 }

@@ -174,6 +174,18 @@ public class Issues extends ServerResource{
 				repReturn = putUnderMaintenanceIssue(entity);
 				System.out.println("Put under maintenance issue");
 			}
+			if(queryMap.get(Constants.ISSUE_OPERATION).compareTo(Constants.FIX_ISSUE)==0)
+			{
+				//put under maintenance an issue
+				repReturn = fixIssue(entity);
+				System.out.println("Fix issue");
+			}
+			if(queryMap.get(Constants.ISSUE_OPERATION).compareTo(Constants.REJECT_ISSUE)==0)
+			{
+				//put under maintenance an issue
+				repReturn = rejectIssue(entity);
+				System.out.println("Reject issue");
+			}
 		}
 		else
 		{
@@ -184,6 +196,139 @@ public class Issues extends ServerResource{
 	}
 	
 
+	/**
+	 * This method change the state of an issue to fixed
+	 * @param entity: the id of the issue to be fixed
+	 * @return
+	 */
+
+	private Representation fixIssue(Representation entity) 
+	{
+		System.out.println("Fix issue");
+		
+		Representation repReturn = null;
+		// Declare the JDBC objects.
+		Connection conn = null;
+		try{
+			JsonParser jsonParser = new JsonParser();
+			JsonObject jsonIssue = jsonParser.parse(entity.getText()).getAsJsonObject();
+			
+			//connection to db
+			conn=DatabaseManager.connectToDatabase();
+			
+			//update the state of the issue with open
+			String query="UPDATE `osmose`.`issues` SET `state` = ? WHERE `issues`.`id_issue` = ?";
+		
+			PreparedStatement preparedStmt = conn.prepareStatement(query);
+			preparedStmt.setString(1, Constants.STATE_FIXED);
+			preparedStmt.setString(2, jsonIssue.get("issueId").getAsString());
+			preparedStmt.executeUpdate();
+			preparedStmt.close(); 
+			
+			ResultSet rs = null;
+							
+			//query to find component of the issue with specified id
+			query = "SELECT component FROM issues WHERE issues.id_issue="+jsonIssue.get("issueId").getAsString();
+			Statement st = conn.createStatement();
+			rs=st.executeQuery(query);
+			String componentId=null;
+			rs.next();
+			if(rs.getString("component")!=null)
+			{
+				if(checkIssueForComponent(componentId).compareTo("none")==0)
+				{
+					componentId= rs.getString("component");
+					query="UPDATE `osmose`.`components` SET `component_state` = ? WHERE `components`.`id_component` = ?";
+					preparedStmt = conn.prepareStatement(query);
+					preparedStmt.setString(1, "Installed");
+					preparedStmt.setString(2, componentId);
+					preparedStmt.executeUpdate();
+					preparedStmt.close(); 
+				}
+			}
+
+			DatabaseManager.disconnectFromDatabase(conn);
+
+
+
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+			setStatus(Status.SERVER_ERROR_INTERNAL);
+			repReturn = new StringRepresentation(e.getMessage());
+		}
+		return repReturn;
+	}
+	
+	
+	
+	/**
+	 * This method change the state of an issue to fixed
+	 * @param entity: the id of the issue to be fixed
+	 * @return
+	 */
+
+	private Representation rejectIssue(Representation entity) 
+	{
+		System.out.println("Reject issue");
+		
+		Representation repReturn = null;
+		// Declare the JDBC objects.
+		Connection conn = null;
+		try{
+			JsonParser jsonParser = new JsonParser();
+			JsonObject jsonIssue = jsonParser.parse(entity.getText()).getAsJsonObject();
+			
+			//connection to db
+			conn=DatabaseManager.connectToDatabase();
+			
+			//update the state of the issue with open
+			String query="UPDATE `osmose`.`issues` SET `state` = ? WHERE `issues`.`id_issue` = ?";
+		
+			PreparedStatement preparedStmt = conn.prepareStatement(query);
+			preparedStmt.setString(1, Constants.STATE_REJECTED);
+			preparedStmt.setString(2, jsonIssue.get("issueId").getAsString());
+			preparedStmt.executeUpdate();
+			preparedStmt.close(); 
+			
+			ResultSet rs = null;
+							
+			//query to find component of the issue with specified id
+			query = "SELECT component FROM issues WHERE issues.id_issue="+jsonIssue.get("issueId").getAsString();
+			Statement st = conn.createStatement();
+			rs=st.executeQuery(query);
+			String componentId=null;
+			rs.next();
+			if(rs.getString("component")!=null)
+			{
+				if(checkIssueForComponent(componentId).compareTo("none")==0)
+				{
+					componentId= rs.getString("component");
+					query="UPDATE `osmose`.`components` SET `component_state` = ? WHERE `components`.`id_component` = ?";
+					preparedStmt = conn.prepareStatement(query);
+					preparedStmt.setString(1, "Installed");
+					preparedStmt.setString(2, componentId);
+					preparedStmt.executeUpdate();
+					preparedStmt.close(); 
+				}
+			}
+
+			DatabaseManager.disconnectFromDatabase(conn);
+
+
+
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+			setStatus(Status.SERVER_ERROR_INTERNAL);
+			repReturn = new StringRepresentation(e.getMessage());
+		}
+		return repReturn;
+	}
+	
+	
 
 	/**
 	 * This method set the state of an issue to open
@@ -285,11 +430,33 @@ public class Issues extends ServerResource{
 			
 			//connection to db
 			conn=DatabaseManager.connectToDatabase();
+			PreparedStatement preparedStmt;
+			ResultSet rs = null;
+			
+			//query to find component of the issue with specified id
+			String query = "SELECT component FROM issues WHERE issues.id_issue="+jsonIssue.get("issueId").getAsString();
+			Statement st = conn.createStatement();
+			rs=st.executeQuery(query);
+			String componentId=null;
+			rs.next();
+			if(rs.getString("component")!=null)
+			{
+				if(checkIssueForComponent(componentId).compareTo("none")==0)
+				{
+					componentId= rs.getString("component");
+					query="UPDATE `osmose`.`components` SET `component_state` = ? WHERE `components`.`id_component` = ?";
+					preparedStmt = conn.prepareStatement(query);
+					preparedStmt.setString(1, "Installed");
+					preparedStmt.setString(2, componentId);
+					preparedStmt.executeUpdate();
+					preparedStmt.close(); 
+				}
+			}
 			
 			//delete an issue
-			String query="DELETE FROM issues WHERE issues.id_issue = ?";
+			query="DELETE FROM issues WHERE issues.id_issue = ?";
 		
-			PreparedStatement preparedStmt = conn.prepareStatement(query);
+			preparedStmt = conn.prepareStatement(query);
 			preparedStmt.setString(1, jsonIssue.get("issueId").getAsString());
 			preparedStmt.executeUpdate();
 			preparedStmt.close(); 
@@ -1443,5 +1610,49 @@ public class Issues extends ServerResource{
 	    return null;
 	}
 	
+	/**
+	 * This method returns none if there isn't issue for the component, c if there's a caution and no warning, w if there's a warning
+	 * @param idComponent
+	 * @return
+	 */
 
+	private String checkIssueForComponent(String idComponent) {
+		
+		ResultSet rs = null;
+		String outcome="none";
+		// Declare the JDBC objects.
+		
+
+		try {
+			//connection to db
+			Connection conn=DatabaseManager.connectToDatabase();
+						
+			//query to find issues of the component of the simulator
+			String query = "SELECT issues.cau_war FROM issues WHERE (issues.state='open' OR issues.state='described') AND issues.component="+idComponent;
+			Statement st = conn.createStatement();
+			rs=st.executeQuery(query);
+			
+			// Iterate through the data in the result set and display it.
+			while (rs.next()) {
+				if(rs.getString("cau_war").compareTo("c")==0)
+				{
+					outcome="c";
+				}
+				else
+				{
+					return "w";
+				}
+			}
+			
+			DatabaseManager.disconnectFromDatabase(conn);
+			
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (rs != null) try { rs.close(); } catch(Exception e) {}
+		}
+		
+		return outcome;
+	}
 }

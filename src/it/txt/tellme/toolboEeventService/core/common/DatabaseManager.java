@@ -12,13 +12,15 @@ import java.sql.*;
 
 public class DatabaseManager {
 	
+	private static boolean threadStarted=false;;
+	
 	
 	/**
 	 * Connection to the mysql db of Osmose
 	 * 
 	 * dbname= "osmose"
 	 * username= "root"
-	 * password=""
+	 * password="root"
 	 * @return 
 	 * 
 	 */
@@ -27,12 +29,19 @@ public class DatabaseManager {
 		 String dbName = "osmose";
 		 String driver = "com.mysql.jdbc.Driver";
 		 String userName = "root";
-		 String password = "";
+		 String password = "root";
 		 try 
 		 { 
+			 if(!threadStarted)
+			 {
+				 threadStarted=true;
+				 //this object starts the thread which control if a session is finished and update the effective time of the
+				 //session.
+				 SessionCheckThread sessionCheckThread = new SessionCheckThread();
+				 sessionCheckThread.start();  
+			 }
 			 Class.forName(driver).newInstance();
 			 Connection conn = DriverManager.getConnection(url+dbName,userName,password);
-			 System.out.print("-connection db OSMOSE opened\n");
 			 return conn;
 		 } 
 		 catch (Exception e) 
@@ -53,12 +62,14 @@ public class DatabaseManager {
 		try 
 		{
 			conn.close();
-			System.out.print("-connection db OSMOSE closed\n");
 		} 
 		catch (SQLException e) 
 		{
 			e.printStackTrace();
 		}
 	 }
+	 
+	 
+	 
 
 }
