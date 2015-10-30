@@ -684,7 +684,7 @@ public class Issues extends ServerResource{
 			      startRecordingParameters.setTimeBefore(new Integer(30));
 			      
 			      //timeStamp when the recording start
-			      DateFormat format = new SimpleDateFormat("yyyy-MM-ddTHH:mm:ss", Locale.ENGLISH);
+			      DateFormat format = new SimpleDateFormat("yyyy.MM.dd HH:mm:ss", Locale.ENGLISH);
 			      Date startDate = format.parse(jsonIssue.get("raise_time").getAsString());
 			      GregorianCalendar gregorianDate = new GregorianCalendar();
 			      gregorianDate.setTime(startDate);
@@ -701,16 +701,16 @@ public class Issues extends ServerResource{
 			    	  query = "SELECT first_name, last_name FROM users WHERE users.id_user="+jsonIssue.get("id_user").getAsString();
 			    	  Statement st = conn.createStatement();
 			    	  nameUser=st.executeQuery(query);
-			    	  rs.next();
-			    	  name= rs.getString("first_name");
-			    	  surname= rs.getString("last_name");
+			    	  nameUser.next();
+			    	  name= nameUser.getString("first_name");
+			    	  surname= nameUser.getString("last_name");
 			      }
 			      catch (Exception e) 
 			      {
 			    	  e.printStackTrace();
 			      }
 			      finally {
-			    	  if (rs != null) try { rs.close(); } catch(Exception e) {}
+			    	  if (nameUser != null) try { nameUser.close(); } catch(Exception e) {}
 			      }
 			      JAXBElement<String> raiserUser=objFactory.createStartRecordingParametersUserName(name+" "+surname);
 			      startRecordingParameters.setUserName(raiserUser);
@@ -720,38 +720,8 @@ public class Issues extends ServerResource{
 			      URL serviceURL=new URL(urlString);
 			      OsmoseWebService osmoseWebServiceObject=new OsmoseWebService(serviceURL);
 			      IOsmoseWebService osmoseService=osmoseWebServiceObject.getBasicHttpBindingIOsmoseWebService();
-			      osmoseService.startRecording(startRecordingParameters);
-			      
-			      
-			      
-			      //ws = new tempuri_org__IOsmoseWebService();
-                  //ws.url="http://vmad00:58000/OsmoseWebService.svc";
-			      
-			      
-			      
-			      /*
-                  //call web service to save data about simulator status
-                  var ws = new tempuri_org__IOsmoseWebService();
-                  ws.url="http://vmad00:58000/OsmoseWebService.svc";
-                  var params = new schemas_datacontract_org_2004_07_OsmoseWebService_StartRecordingParameters();
-
-                  //StartRecordingParams
-                  //RecordingId= codice_id_simulator-timestamp-id_snag
-                  //EventType = warning or caution
-                  //TimeBefore = 10
-                  //TimeStamp = 2015-06-25T09:18:45.7474622+02:00
-                  //UserName = name and surname
-
-                  //RecordingId= codice_id_simulator-timestamp-id_snag
-                  params.setRecordingId(localStorage.simulatorId+"-"+date.getFullYear()+month+day+hours+minutes+seconds+milliseconds+"-"+idIssue.id_issue);
-                  params.setEventType(sessionStorage.currentRaisedIssue);
-                  params.setTimeBefore(30);
-                  //TimeStamp = 2015-06-25T09:18:45.7474622+02:00
-                  params.setTimeStamp(date.getFullYear()+"-"+month+"-"+day+"T"+hours+":"+minutes+":"+seconds+"."+milliseconds+timeZoneHours+":"+timeZoneMinutes);
-                  params.setUserName(localStorage.userFirstName+ " " +localStorage.userLastName);
-
-                  ws.StartRecording(function (a) {console.log(a);}, function (a) {console.log(a);}, params);
-                  */
+			      Boolean outcome=osmoseService.startRecording(startRecordingParameters);
+			      System.out.println("Osmose Service Start Recording ---> "+outcome);
 			       
 			      DatabaseManager.disconnectFromDatabase(conn);
 			    	  
