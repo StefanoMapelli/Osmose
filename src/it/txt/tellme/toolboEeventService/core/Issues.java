@@ -11,21 +11,36 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.URL;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.Locale;
 import java.util.Map;
 
 import javax.imageio.ImageIO;
+import javax.xml.bind.JAXBElement;
+import javax.xml.datatype.DatatypeFactory;
+import javax.xml.datatype.XMLGregorianCalendar;
+import javax.xml.namespace.QName;
 
 import org.apache.commons.codec.binary.Base64;
+import org.datacontract.schemas._2004._07.osmosewebservice.ObjectFactory;
+import org.datacontract.schemas._2004._07.osmosewebservice.StartRecordingParameters;
+import org.datacontract.schemas._2004._07.osmosewebservice.StopRecordingParameters;
 import org.restlet.data.Status;
 import org.restlet.ext.json.JsonRepresentation;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
 import org.restlet.resource.ResourceException;
 import org.restlet.resource.ServerResource;
+import org.tempuri.IOsmoseWebService;
+import org.tempuri.OsmoseWebService;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -649,6 +664,94 @@ public class Issues extends ServerResource{
 			    	  preparedStmt.executeUpdate();
 			    	  preparedStmt.close(); 			    	  
 			      }
+			      
+			      ObjectFactory objFactory=new ObjectFactory();
+			      
+		      
+			      //call the service to capture data from the simulator
+			      //parameters for the service
+			      StartRecordingParameters startRecordingParameters=objFactory.createStartRecordingParameters();
+			      
+			      // id of the issue
+			      JAXBElement<String> recordingId=objFactory.createStartRecordingParametersRecordingId(jsonIssue.get("raise_time").getAsString()+"-"+rs.getString(1));
+			      startRecordingParameters.setRecordingId(recordingId);
+			      
+			      // type of the issue
+			      JAXBElement<String> eventType=objFactory.createStartRecordingParametersEventType(jsonIssue.get("cau_war").getAsString());
+			      startRecordingParameters.setEventType(eventType);
+			      
+			      // time before the issue for starting recording
+			      startRecordingParameters.setTimeBefore(new Integer(30));
+			      
+			      //timeStamp when the recording start
+			      DateFormat format = new SimpleDateFormat("yyyy-MM-ddTHH:mm:ss", Locale.ENGLISH);
+			      Date startDate = format.parse(jsonIssue.get("raise_time").getAsString());
+			      GregorianCalendar gregorianDate = new GregorianCalendar();
+			      gregorianDate.setTime(startDate);
+			      XMLGregorianCalendar tipeStamp = DatatypeFactory.newInstance().newXMLGregorianCalendar(gregorianDate);
+			      startRecordingParameters.setTimeStamp(tipeStamp);
+			      
+			      //name and surname of the raiser user
+			      ResultSet nameUser = null;
+			      String name="";
+			      String surname="";
+			      try {
+
+			    	  //query to find user with specified id
+			    	  query = "SELECT first_name, last_name FROM users WHERE users.id_user="+jsonIssue.get("id_user").getAsString();
+			    	  Statement st = conn.createStatement();
+			    	  nameUser=st.executeQuery(query);
+			    	  rs.next();
+			    	  name= rs.getString("first_name");
+			    	  surname= rs.getString("last_name");
+			      }
+			      catch (Exception e) 
+			      {
+			    	  e.printStackTrace();
+			      }
+			      finally {
+			    	  if (rs != null) try { rs.close(); } catch(Exception e) {}
+			      }
+			      JAXBElement<String> raiserUser=objFactory.createStartRecordingParametersUserName(name+" "+surname);
+			      startRecordingParameters.setUserName(raiserUser);
+			      
+			      //start recording OsmoseService
+			      String urlString="http://vmad00:58000/OsmoseWebService.svc";
+			      URL serviceURL=new URL(urlString);
+			      OsmoseWebService osmoseWebServiceObject=new OsmoseWebService(serviceURL);
+			      IOsmoseWebService osmoseService=osmoseWebServiceObject.getBasicHttpBindingIOsmoseWebService();
+			      osmoseService.startRecording(startRecordingParameters);
+			      
+			      
+			      
+			      //ws = new tempuri_org__IOsmoseWebService();
+                  //ws.url="http://vmad00:58000/OsmoseWebService.svc";
+			      
+			      
+			      
+			      /*
+                  //call web service to save data about simulator status
+                  var ws = new tempuri_org__IOsmoseWebService();
+                  ws.url="http://vmad00:58000/OsmoseWebService.svc";
+                  var params = new schemas_datacontract_org_2004_07_OsmoseWebService_StartRecordingParameters();
+
+                  //StartRecordingParams
+                  //RecordingId= codice_id_simulator-timestamp-id_snag
+                  //EventType = warning or caution
+                  //TimeBefore = 10
+                  //TimeStamp = 2015-06-25T09:18:45.7474622+02:00
+                  //UserName = name and surname
+
+                  //RecordingId= codice_id_simulator-timestamp-id_snag
+                  params.setRecordingId(localStorage.simulatorId+"-"+date.getFullYear()+month+day+hours+minutes+seconds+milliseconds+"-"+idIssue.id_issue);
+                  params.setEventType(sessionStorage.currentRaisedIssue);
+                  params.setTimeBefore(30);
+                  //TimeStamp = 2015-06-25T09:18:45.7474622+02:00
+                  params.setTimeStamp(date.getFullYear()+"-"+month+"-"+day+"T"+hours+":"+minutes+":"+seconds+"."+milliseconds+timeZoneHours+":"+timeZoneMinutes);
+                  params.setUserName(localStorage.userFirstName+ " " +localStorage.userLastName);
+
+                  ws.StartRecording(function (a) {console.log(a);}, function (a) {console.log(a);}, params);
+                  */
 			       
 			      DatabaseManager.disconnectFromDatabase(conn);
 			    	  
