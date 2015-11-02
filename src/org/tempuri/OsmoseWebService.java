@@ -17,7 +17,7 @@ import javax.xml.ws.WebServiceFeature;
  * Generated source version: 2.2
  * 
  */
-@WebServiceClient(name = "OsmoseWebService", targetNamespace = "http://tempuri.org/", wsdlLocation = "http://vmad00:58000/OsmoseWebService.svc?singleWsdl")
+@WebServiceClient(name = "OsmoseWebService", targetNamespace = "http://tempuri.org/", wsdlLocation = "http://localhost:58000/OsmoseWebService.svc?singleWsdl")
 public class OsmoseWebService
     extends Service
 {
@@ -30,7 +30,7 @@ public class OsmoseWebService
         URL url = null;
         WebServiceException e = null;
         try {
-            url = new URL("http://vmad00:58000/OsmoseWebService.svc?singleWsdl");
+            url = new URL("http://localhost:58000/OsmoseWebService.svc?singleWsdl");
         } catch (MalformedURLException ex) {
             e = new WebServiceException(ex);
         }

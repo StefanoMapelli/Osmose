@@ -27,12 +27,10 @@ import javax.imageio.ImageIO;
 import javax.xml.bind.JAXBElement;
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
-import javax.xml.namespace.QName;
 
 import org.apache.commons.codec.binary.Base64;
 import org.datacontract.schemas._2004._07.osmosewebservice.ObjectFactory;
 import org.datacontract.schemas._2004._07.osmosewebservice.StartRecordingParameters;
-import org.datacontract.schemas._2004._07.osmosewebservice.StopRecordingParameters;
 import org.restlet.data.Status;
 import org.restlet.ext.json.JsonRepresentation;
 import org.restlet.representation.Representation;
@@ -666,8 +664,6 @@ public class Issues extends ServerResource{
 			      }
 			      
 			      ObjectFactory objFactory=new ObjectFactory();
-			      
-		      
 			      //call the service to capture data from the simulator
 			      //parameters for the service
 			      StartRecordingParameters startRecordingParameters=objFactory.createStartRecordingParameters();
@@ -716,7 +712,7 @@ public class Issues extends ServerResource{
 			      startRecordingParameters.setUserName(raiserUser);
 			      
 			      //start recording OsmoseService
-			      String urlString="http://vmad00:58000/OsmoseWebService.svc";
+			      String urlString="http://localhost:58000/OsmoseWebService.svc";
 			      URL serviceURL=new URL(urlString);
 			      OsmoseWebService osmoseWebServiceObject=new OsmoseWebService(serviceURL);
 			      IOsmoseWebService osmoseService=osmoseWebServiceObject.getBasicHttpBindingIOsmoseWebService();

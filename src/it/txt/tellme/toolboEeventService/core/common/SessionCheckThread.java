@@ -37,17 +37,39 @@ public class SessionCheckThread extends Thread{
 	private void updateEffectiveTimeMaintenanceSession() {
 		
 		try {
+			ResultSet session = null;
 			//connection to db
 			Connection conn=DatabaseManager.connectToDatabase();
 			//session to be updated
-			String query="UPDATE maintenance SET maintenance.effective_start_time=maintenance.scheduled_start_time,"
+			String query = "SELECT * FROM maintenance"
+					+" WHERE maintenance.effective_start_time is NULL AND maintenance.effective_finish_time is NULL"
+					+" AND maintenance.scheduled_finish_time<DATE_SUB(NOW(), INTERVAL 1 HOUR)";
+			Statement st = conn.createStatement();
+			session=st.executeQuery(query);
+			
+			//maintenance to be updated
+			query="UPDATE maintenance SET maintenance.effective_start_time=maintenance.scheduled_start_time,"
 					+ " maintenance.effective_finish_time=maintenance.scheduled_finish_time"
 					+ " WHERE maintenance.effective_start_time is NULL AND maintenance.effective_finish_time is NULL"
 					+ " AND maintenance.scheduled_finish_time<DATE_SUB(NOW(), INTERVAL 1 HOUR)";
 			PreparedStatement preparedStmt = conn.prepareStatement(query);
 			preparedStmt.executeUpdate();	
 			System.out.println("Effective maintenance time updated");
+			
+			while(session.next())
+			{
+				//the life time of the component will be 0 when a maintenance on the component ends
+				query="UPDATE components SET"
+						+ " components.life_time=0, components.installation_date='"+session.getString("scheduled_start_time")
+						+ "' WHERE components.id_component="+session.getString("component")
+						+ " AND components.simulator="+session.getString("simulator");
+				preparedStmt = conn.prepareStatement(query);
+				preparedStmt.executeUpdate();
+				
+				System.out.println("Component life time reset");
+			}
 			preparedStmt.close(); 
+			session.close();
 			DatabaseManager.disconnectFromDatabase(conn);
 		}
 		catch (Exception e) 
@@ -94,7 +116,7 @@ public class SessionCheckThread extends Thread{
 				
 				Date startDate = format.parse(session.getString("scheduled_start_time"));
 				Date finishDate = format.parse(session.getString("scheduled_finish_time"));
-				float lifeTimeIncrement=((float)finishDate.getTime()-(float)startDate.getTime())/3600000;
+				double lifeTimeIncrement=((double)finishDate.getTime()-(double)startDate.getTime())/3600000;
 				
 				//query to update the life time
 				query="UPDATE components SET"
