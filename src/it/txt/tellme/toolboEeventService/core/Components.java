@@ -37,12 +37,73 @@ public class Components extends ServerResource{
 			repReturn = getComponentsData(compId);
 			System.out.println("get components");
 		}
+		else if(queryMap.size()==2 && queryMap.containsKey(Constants.SIMULATOR_ID) && queryMap.get(Constants.COMPONENT_OPERATION).compareTo(Constants.WORK_TIME_ALERTS)==0)
+		{
+			String simId=queryMap.get(Constants.SIMULATOR_ID);
+			repReturn = getComponentsWorkTimeAlerts(simId);
+			System.out.println("get alert on the components work time");
+		}
 		else
 		{
 			setStatus(Status.CLIENT_ERROR_BAD_REQUEST);
 		}
 		
 		return repReturn;
+	}
+
+	
+	/**
+	 * This method checks the work time of the components of a simulator
+	 * and, if there's a critical status,  
+	 * returns a list of components with the information for the alert.
+	 * @param simId identification of the simulator
+	 * @return a json with the list of alerts
+	 */
+		private Representation getComponentsWorkTimeAlerts(String simId) {
+		
+			ResultSet rs = null;
+			Representation repReturn = null;
+
+			try {
+				
+				//connection to db
+				Connection conn=DatabaseManager.connectToDatabase();
+							
+				String query = "SELECT components.*, systems.name as system_name, subsystems.name as subsystem_name FROM components, systems, subsystems WHERE components.simulator="+simId+" AND components.hw_sw='h' AND systems.id_system=subsystems.system AND components.subsystem=subsystems.id_subsystem AND components.life_time>components.mtbf";
+				Statement st = conn.createStatement();
+				rs=st.executeQuery(query);				
+				
+				JsonArray alertsList = new JsonArray();
+				while (rs.next()) {	
+					JsonObject alertObject = new JsonObject();
+					
+					if(rs.getFloat("life_time")>rs.getFloat("expected_life_time"))
+					{
+						alertObject.addProperty("alert_status", "Work Time over the critical threshold");
+						break;
+					}
+					else
+					{
+						alertObject.addProperty("alert_status", "Work Time near to critical threshold");
+					}
+					
+					alertObject.addProperty("id_component", rs.getString("id_component"));
+					alertObject.addProperty("name", rs.getString("name"));
+					alertObject.addProperty("system", rs.getString("system_name"));
+					
+					alertsList.add(alertObject);				
+				}
+				repReturn = new JsonRepresentation(alertsList.toString());
+				DatabaseManager.disconnectFromDatabase(conn);
+				
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+			}
+			finally {
+				if (rs != null) try { rs.close(); } catch(Exception e) {}
+			}
+			return repReturn;
 	}
 
 		/**
@@ -53,7 +114,6 @@ public class Components extends ServerResource{
 		private Representation getComponentsData(String componentId) {
 			
 			ResultSet rs = null;
-			ResultSet rsLT = null;
 			Representation repReturn = null;
 
 			try {
