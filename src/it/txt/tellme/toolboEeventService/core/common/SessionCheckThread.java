@@ -45,6 +45,8 @@ public class SessionCheckThread extends Thread{
 					+" WHERE maintenance.effective_start_time is NULL AND maintenance.effective_finish_time is NULL"
 					+" AND maintenance.scheduled_finish_time<DATE_SUB(NOW(), INTERVAL 1 HOUR)";
 			Statement st = conn.createStatement();
+			Statement st1 = conn.createStatement();
+			Statement st2 = conn.createStatement();
 			session=st.executeQuery(query);
 			
 			//maintenance to be updated
@@ -58,9 +60,18 @@ public class SessionCheckThread extends Thread{
 			
 			while(session.next())
 			{
+				query="SELECT * FROM components WHERE components.id_component="+session.getString("component")
+						+ " AND components.simulator="+session.getString("simulator");
+				ResultSet component=st1.executeQuery(query);
+				component.next();
+				query="SELECT COUNT(*) AS counter FROM maintenance WHERE component="+session.getString("component");
+				ResultSet numberOfMaintenanceRS=st2.executeQuery(query);
+				numberOfMaintenanceRS.next();
+				int numberOfMaintenance=numberOfMaintenanceRS.getInt("counter");
+				float newMtbf=(component.getFloat("life_time")+(component.getFloat("mtbf")*(numberOfMaintenance-1)))/(numberOfMaintenance);
 				//the life time of the component will be 0 when a maintenance on the component ends
 				query="UPDATE components SET"
-						+ " components.life_time=0, components.installation_date='"+session.getString("scheduled_start_time")
+						+ " components.life_time=0, components.mtbf="+newMtbf+", components.installation_date='"+session.getString("scheduled_start_time")
 						+ "' WHERE components.id_component="+session.getString("component")
 						+ " AND components.simulator="+session.getString("simulator");
 				preparedStmt = conn.prepareStatement(query);
@@ -137,6 +148,4 @@ public class SessionCheckThread extends Thread{
 			e.printStackTrace();
 		}
 	}
-	
-
 }

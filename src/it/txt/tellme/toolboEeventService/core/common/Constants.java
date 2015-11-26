@@ -54,6 +54,7 @@ public class Constants {
 	    public static final String ISSUE_OPERATION="opIssue";
 	    public static final String UPDATE_DESCRIPTION="updateDescription";
 	    public static final String UPDATE_QUESTIONNAIRE="updateQuestionnaire";
+	    public static final String UPDATE_TAG="updateTag";
 	    public static final String GET_IMAGES="getImages";
 	    public static final String GET_AUDIOS="getAudio";
 	    public static final String DELETE_ISSUE="deleteIssue";
@@ -66,6 +67,7 @@ public class Constants {
 	    public static final String TYPE_OPERATION="opType";
 	    public static final String GET_SEVERITIES = "getSeverities";
 	    public static final String GET_TYPES = "getTypes";
+		public static final String GET_TAGS = "getTags";
 	    public static final String GET_PRIORITIES = "getPriorities";
 	    public static final String GET_SYSTEMS = "getSystems";
 	    public static final String GET_SUBSYSTEMS = "getSubsystems";
@@ -100,6 +102,15 @@ public class Constants {
 		
 		public static final String DEFAULT_INSTRUCTOR_ID = "7";
 		public static final String DEFAULT_PILOT_ID = "8";
+		public static final String DEFAULT_TAG = "1";
+		
+		public static final String SYSTEM_OPEN_COUNTERS = "systemOpenCounters";
+		public static final String NOT_YET_CLASSIFIED_COUNTER = "notYetClassifiedCounter";
+		public static final String SYSTEM_ID = "systemId";
+		public static final String ISSUE_STATUS = "issueStatus";
+		public static final String ISSUE_TYPE = "issueType";
+		public static final String NEW_DESCRIBED_ISSUES = "newDescribedIssues";
+		
 		
 		
 		

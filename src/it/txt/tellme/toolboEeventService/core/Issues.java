@@ -18,6 +18,7 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.Locale;
@@ -88,6 +89,13 @@ public class Issues extends ServerResource{
 			repReturn = getIssuesWithSystem(sysId);
 			System.out.println("Get issues of the system");
 		}
+		else if(queryMap.size()==1 && queryMap.containsKey(Constants.SYSTEM_ID))
+		{
+			//get issue information
+			String sysId = queryMap.get(Constants.SYSTEM_ID);
+			repReturn = getIssuesStatisticsOfTheSystemId(sysId);
+			System.out.println("Get statistics of issues of the system");
+		}
 		else if(queryMap.size()==1 && queryMap.containsKey(Constants.ISSUE_ID))
 		{
 			//get issue information
@@ -136,13 +144,44 @@ public class Issues extends ServerResource{
 			repReturn = getIssuesWithComponentAndSimulator(simId, compId);
 			System.out.println("Get issues with specified component and simulator");
 		}
-		else
+		else if(queryMap.size()==2 && queryMap.containsKey(Constants.SIMULATOR_ID) && queryMap.get(Constants.ISSUE_OPERATION).compareTo(Constants.SYSTEM_OPEN_COUNTERS)==0)
+		{
+			//get counters of the open issues of systems of a simulator
+			String simId=queryMap.get(Constants.SIMULATOR_ID);
+			repReturn = getStateOpenIssueCounterForSystems(simId);
+			System.out.println("Get counters of the open issues of systems of a simulator");
+		}
+		else if(queryMap.size()==2 && queryMap.containsKey(Constants.SIMULATOR_ID) && queryMap.get(Constants.ISSUE_OPERATION).compareTo(Constants.NEW_DESCRIBED_ISSUES)==0)
+		{
+			//get issues new and described of a simulator
+			String simId=queryMap.get(Constants.SIMULATOR_ID);
+			repReturn = getNewDescribedIssuesForCurrentSimulator(simId);
+			System.out.println("Get all new and described issues of a simulator");
+		}
+		else if(queryMap.size()==2 && queryMap.containsKey(Constants.SIMULATOR_ID) && queryMap.get(Constants.ISSUE_OPERATION).compareTo(Constants.NOT_YET_CLASSIFIED_COUNTER)==0)
+		{
+			//get counters of the open issues of not yet classified
+			String simId=queryMap.get(Constants.SIMULATOR_ID);
+			repReturn = getNotYetClassifiedCounterOfIssues(simId);
+			System.out.println("Get counter of problem not yet classified");
+		}
+		else if(queryMap.size()==3 && queryMap.containsKey(Constants.SYSTEM_ID) && queryMap.containsKey(Constants.ISSUE_STATUS) && queryMap.containsKey(Constants.ISSUE_TYPE))
+		{
+			//get issues list
+			String sysId=queryMap.get(Constants.SYSTEM_ID);
+			String type=queryMap.get(Constants.ISSUE_TYPE);
+			String status=queryMap.get(Constants.ISSUE_STATUS);
+			repReturn = getIssuesOfSystemWithStatusAndType(sysId, type, status);
+			System.out.println("Get issues list with, simulator, system,  issue status and issue type");
+		}
+		else 
 		{
 			setStatus(Status.CLIENT_ERROR_BAD_REQUEST);
 		}
 		
 		return repReturn;
 	}
+
 
 	/**
 	 * POST method
@@ -169,35 +208,41 @@ public class Issues extends ServerResource{
 				System.out.println("Update description");
 			}
 			
-			if(queryMap.get(Constants.ISSUE_OPERATION).compareTo(Constants.UPDATE_QUESTIONNAIRE)==0)
+			else if(queryMap.get(Constants.ISSUE_OPERATION).compareTo(Constants.UPDATE_QUESTIONNAIRE)==0)
 			{
 				//change data of the issue
 				repReturn = updateQuestionnaireOfIssue(entity);
 				System.out.println("Update description");
 			}
-			if(queryMap.get(Constants.ISSUE_OPERATION).compareTo(Constants.DELETE_ISSUE)==0)
+			else if(queryMap.get(Constants.ISSUE_OPERATION).compareTo(Constants.DELETE_ISSUE)==0)
 			{
 				//delete an issue
 				repReturn = deleteIssue(entity);
 				System.out.println("Delete issue");
 			}
-			if(queryMap.get(Constants.ISSUE_OPERATION).compareTo(Constants.PUT_UNDER_MAINTENANCE)==0)
+			else if(queryMap.get(Constants.ISSUE_OPERATION).compareTo(Constants.PUT_UNDER_MAINTENANCE)==0)
 			{
 				//put under maintenance an issue
 				repReturn = putUnderMaintenanceIssue(entity);
 				System.out.println("Put under maintenance issue");
 			}
-			if(queryMap.get(Constants.ISSUE_OPERATION).compareTo(Constants.FIX_ISSUE)==0)
+			else if(queryMap.get(Constants.ISSUE_OPERATION).compareTo(Constants.FIX_ISSUE)==0)
 			{
 				//put under maintenance an issue
 				repReturn = fixIssue(entity);
 				System.out.println("Fix issue");
 			}
-			if(queryMap.get(Constants.ISSUE_OPERATION).compareTo(Constants.REJECT_ISSUE)==0)
+			else if(queryMap.get(Constants.ISSUE_OPERATION).compareTo(Constants.REJECT_ISSUE)==0)
 			{
 				//put under maintenance an issue
 				repReturn = rejectIssue(entity);
 				System.out.println("Reject issue");
+			}
+			else if(queryMap.get(Constants.ISSUE_OPERATION).compareTo(Constants.UPDATE_TAG)==0)
+			{
+				//update the tag field
+				repReturn = updateTag(entity);
+				System.out.println("UpdateTag");
 			}
 		}
 		else
@@ -208,6 +253,109 @@ public class Issues extends ServerResource{
 		return repReturn;
 	}
 	
+	
+	
+	/**
+	 * This method get a list of issues of a simulator system which are in the specified status and are of the specified type
+	 * @param simId
+	 * @param sysId
+	 * @param type
+	 * @param status
+	 * @return json with the list of issues
+	 */
+	private Representation getIssuesOfSystemWithStatusAndType(String sysId, String type, String status) {
+		
+		ResultSet rs = null;
+		Representation repReturn = null;
+		// Declare the JDBC objects.
+
+		try {
+			//connection to db
+			Connection conn=DatabaseManager.connectToDatabase();
+			String query;
+			//query to find issues of the specified session
+			if(status.compareTo("closed")==0)
+			{
+				query = "SELECT issues.id_issue, tags.name AS tag, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name FROM tags, issues, users, systems WHERE tags.id_tag=issues.tag AND (issues.state='rejected' OR issues.state='fixed') AND issues.cau_war='"+type+"' AND users.id_user=issues.user_raiser AND systems.id_system=issues.system AND systems.id_system="+sysId;
+			}
+			else
+			{
+				query = "SELECT issues.id_issue, tags.name AS tag, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name FROM tags, issues, users, systems WHERE tags.id_tag=issues.tag AND issues.state='"+status+"' AND issues.cau_war='"+type+"' AND users.id_user=issues.user_raiser AND systems.id_system=issues.system AND systems.id_system="+sysId;
+			}
+			
+			Statement st = conn.createStatement();
+			rs=st.executeQuery(query);
+			
+			// Iterate through the data in the result set and display it.
+			JsonArray issuesList = new JsonArray();
+			while (rs.next()) {
+				JsonObject jsonIssue = new JsonObject();
+				jsonIssue.addProperty("id_issue", rs.getInt("id_issue"));		
+				jsonIssue.addProperty("raise_time", rs.getString("raise_time"));
+				jsonIssue.addProperty("hw_sw", rs.getString("hw_sw"));
+				jsonIssue.addProperty("cau_war", rs.getString("cau_war"));
+				jsonIssue.addProperty("state", rs.getString("state"));
+				jsonIssue.addProperty("first_name_raiser", rs.getString("first_name"));
+				jsonIssue.addProperty("last_name_raiser", rs.getString("last_name"));
+				jsonIssue.addProperty("system", rs.getString("name"));
+				jsonIssue.addProperty("tag", rs.getString("tag"));
+				
+				issuesList.add(jsonIssue);				
+			}
+			repReturn = new JsonRepresentation(issuesList.toString());
+			DatabaseManager.disconnectFromDatabase(conn);
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+		}
+		return repReturn;
+		
+	}
+	
+	
+	
+
+	/**
+	 * This method update the tag field of the issue with the selected one
+	 * @param entity: issueId e tagId in the json
+	 * @return
+	 */
+	private Representation updateTag(Representation entity) {
+		
+System.out.println("Update tag");
+		
+		Representation repReturn = null;
+		// Declare the JDBC objects.
+		Connection conn = null;
+		try{
+			JsonParser jsonParser = new JsonParser();
+			JsonObject jsonIssue = jsonParser.parse(entity.getText()).getAsJsonObject();
+			
+			//connection to db
+			conn=DatabaseManager.connectToDatabase();
+			
+			//update the state of the issue with open
+			String query="UPDATE `osmose`.`issues` SET tag = ? WHERE `issues`.`id_issue` = ?";
+		
+			PreparedStatement preparedStmt = conn.prepareStatement(query);
+			preparedStmt.setString(1, jsonIssue.get("tagId").getAsString());
+			preparedStmt.setString(2, jsonIssue.get("issueId").getAsString());
+			preparedStmt.executeUpdate();
+			preparedStmt.close(); 
+			
+			DatabaseManager.disconnectFromDatabase(conn);
+			
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+			setStatus(Status.SERVER_ERROR_INTERNAL);
+			repReturn = new StringRepresentation(e.getMessage());
+		}
+		return repReturn;
+	}
 
 	/**
 	 * This method change the state of an issue to fixed
@@ -370,8 +518,6 @@ public class Issues extends ServerResource{
 			preparedStmt.setString(2, jsonIssue.get("issueId").getAsString());
 			preparedStmt.executeUpdate();
 			preparedStmt.close(); 
-	
-			updateMTBF(jsonIssue.get("issueId").getAsString());
 			
 			DatabaseManager.disconnectFromDatabase(conn);
 			
@@ -571,9 +717,10 @@ public class Issues extends ServerResource{
 			      		+ " `priority`,"
 			      		+ " `severity`,"
 			      		+ " `session`,"
+			      		+ " `tag`,"
 			      		+ " `user_raiser`)"
 			      		+ " VALUES "
-			      		+ "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+			      		+ "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 			 
 			      // create the mysql insert preparedstatement
 			      PreparedStatement preparedStmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
@@ -600,7 +747,8 @@ public class Issues extends ServerResource{
 			      preparedStmt.setString(13, Constants.PRIORITY_LOW);
 			      preparedStmt.setString(14, Constants.SEVERITY_MODERATE);
 			      preparedStmt.setString(15, jsonIssue.get("session").getAsString());
-			      preparedStmt.setString(16, jsonIssue.get("id_user").getAsString());
+			      preparedStmt.setString(15, Constants.DEFAULT_TAG);
+			      preparedStmt.setString(17, jsonIssue.get("id_user").getAsString());
 			      
 			      
 			      // execute the preparedstatement
@@ -662,7 +810,7 @@ public class Issues extends ServerResource{
 			    	  preparedStmt.executeUpdate();
 			    	  preparedStmt.close(); 			    	  
 			      }
-			      
+			      /*
 			      ObjectFactory objFactory=new ObjectFactory();
 			      //call the service to capture data from the simulator
 			      //parameters for the service
@@ -718,7 +866,7 @@ public class Issues extends ServerResource{
 			      IOsmoseWebService osmoseService=osmoseWebServiceObject.getBasicHttpBindingIOsmoseWebService();
 			      Boolean outcome=osmoseService.startRecording(startRecordingParameters);
 			      System.out.println("Osmose Service Start Recording ---> "+outcome);
-			       
+			       */
 			      DatabaseManager.disconnectFromDatabase(conn);
 			    	  
 			}catch (Exception e) {
@@ -955,7 +1103,7 @@ public class Issues extends ServerResource{
 			Connection conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issues of the specified session
-			String query = "SELECT issues.id_issue, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name FROM issues, users, systems, sessions WHERE sessions.id_session=issues.session AND users.id_user=issues.user_raiser AND systems.id_system=issues.system AND systems.name='"+systemName+"' AND sessions.simulator="+simId;
+			String query = "SELECT issues.id_issue, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name, tags.name AS tag_name FROM issues, users, systems, sessions, tags WHERE tags.id_tag=issues.tag AND sessions.id_session=issues.session AND users.id_user=issues.user_raiser AND systems.id_system=issues.system AND systems.name='"+systemName+"' AND sessions.simulator="+simId;
 			Statement st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
@@ -971,6 +1119,7 @@ public class Issues extends ServerResource{
 				jsonIssue.addProperty("first_name_raiser", rs.getString("first_name"));
 				jsonIssue.addProperty("last_name_raiser", rs.getString("last_name"));
 				jsonIssue.addProperty("system", rs.getString("name"));
+				jsonIssue.addProperty("tag", rs.getString("tag_name"));
 				
 				issuesList.add(jsonIssue);				
 			}
@@ -985,6 +1134,194 @@ public class Issues extends ServerResource{
 		return repReturn;
 		
 	}
+	
+	
+	
+	
+	/**
+	 * This method returns the counters of the open issues in each system 
+	 * @param simId: id of the simulator
+	 * @return the list of the systems with the counter of the open issues
+	 */
+	private Representation getStateOpenIssueCounterForSystems(String simId) {
+		
+		ResultSet rs = null;
+		ResultSet allSystemsRs = null;
+		Representation repReturn = null;
+
+
+		try {
+			//connection to db
+			Connection conn=DatabaseManager.connectToDatabase();
+			
+			String query="SELECT distinct systems.id_system, systems.name FROM systems, subsystems, components, simulators WHERE simulators.id_simulator="+simId+" AND components.simulator=simulators.id_simulator AND systems.id_system=subsystems.system AND subsystems.id_subsystem=components.subsystem";
+			Statement st = conn.createStatement();
+			allSystemsRs=st.executeQuery(query);
+			
+			ArrayList<ArrayList<String>> systems=new ArrayList<ArrayList<String>>();
+			
+			while (allSystemsRs.next()) {
+				ArrayList<String> idNamePair=new ArrayList<String>();
+				idNamePair.add(allSystemsRs.getString("name"));
+				idNamePair.add(allSystemsRs.getString("id_system"));
+				System.out.println(idNamePair.get(0));
+				systems.add(idNamePair);
+			}
+			
+			query = "SELECT  distinct systems.id_system, systems.name, COUNT(issues.id_issue) AS counter FROM issues, systems, sessions WHERE systems.id_system=issues.system AND sessions.id_session=issues.session AND issues.state='open' AND systems.name!='not_classified'  AND sessions.simulator="+simId+" GROUP BY systems.id_system";
+			rs=st.executeQuery(query);
+			
+			JsonArray systemList = new JsonArray();
+			while (rs.next()) {
+				JsonObject systemCounter = new JsonObject();
+				ArrayList<String> arrayToRemove=new ArrayList<String>();
+				arrayToRemove.add(rs.getString("name"));
+				arrayToRemove.add(rs.getString("id_system"));
+				systems.remove(arrayToRemove);
+				systemCounter.addProperty("system_name", rs.getString("name"));		
+				systemCounter.addProperty("id_system", rs.getString("id_system"));
+				systemCounter.addProperty("counter", rs.getString("counter"));
+				systemList.add(systemCounter);
+			}
+			
+			for (ArrayList<String> pair : systems) {
+				
+				JsonObject systemCounter = new JsonObject();
+				systemCounter.addProperty("system_name", pair.get(0));		
+				systemCounter.addProperty("id_system", pair.get(1));
+				systemCounter.addProperty("counter", 0);
+				System.out.println("+++"+pair.get(0));
+				systemList.add(systemCounter);
+			}
+			
+			repReturn = new JsonRepresentation(systemList.toString());
+			DatabaseManager.disconnectFromDatabase(conn);
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+		}
+		return repReturn;
+		
+	}
+	
+	
+	/**
+	 * This method returns the statistics of a systems: number of caution, number of warning, components situation...
+	 * @param simId: id of the simulator
+	 * @return a json object with the number of open caution, number of open warnings, number of closed caution, number of closed warnings, components work time situation
+	 */
+	private Representation getIssuesStatisticsOfTheSystemId(String systemId) {
+		
+		ResultSet rs = null;
+		Representation repReturn = null;
+		try {
+			//connection to db
+			Connection conn=DatabaseManager.connectToDatabase();
+			JsonObject systemCounter = new JsonObject();
+			String query;
+			Statement st = conn.createStatement();
+			//numero di cautions aperte
+			query = "SELECT COUNT(*) AS counter FROM issues WHERE issues.cau_war='c' AND issues.state='open' AND issues.system="+systemId;
+			rs=st.executeQuery(query);
+			rs.next();
+			systemCounter.addProperty("open_cautions", rs.getString("counter"));
+			rs.close();
+			//numero di warnings aperti
+			query = "SELECT COUNT(*) AS counter FROM issues WHERE issues.cau_war='w' AND issues.state='open' AND issues.system="+systemId;
+			rs=st.executeQuery(query);
+			rs.next();
+			systemCounter.addProperty("open_warnings", rs.getString("counter"));
+			rs.close();
+			//numero di cautions chiuse
+			query = "SELECT COUNT(*) AS counter FROM issues WHERE issues.cau_war='c' AND (issues.state='rejected' OR issues.state='fixed') AND issues.system="+systemId;
+			rs=st.executeQuery(query);
+			rs.next();
+			systemCounter.addProperty("closed_cautions", rs.getString("counter"));
+			rs.close();
+			//numero di warnings aperte
+			query = "SELECT COUNT(*) AS counter FROM issues WHERE issues.cau_war='w' AND (issues.state='rejected' OR issues.state='fixed') AND issues.system="+systemId;
+			rs=st.executeQuery(query);
+			rs.next();
+			systemCounter.addProperty("closed_warnings", rs.getString("counter"));
+			rs.close();
+			
+			//valuto lo stato delle componenti
+			query = "SELECT components.life_time, components.expected_life_time FROM components, subsystems, systems WHERE components.subsystem=subsystems.id_subsystem AND systems.id_system=subsystems.system AND systems.id_system="+systemId+" AND components.life_time>components.mtbf";
+			rs=st.executeQuery(query);
+			systemCounter.addProperty("component_status", "No critical status");
+			while(rs.next())
+			{
+				if(rs.getFloat("life_time")>rs.getFloat("expected_life_time"))
+				{
+					systemCounter.addProperty("component_status", "Work Time over the critical threshold");
+					break;
+				}
+				else
+				{
+					systemCounter.addProperty("component_status", "Work Time near to critical threshold");
+				}
+			}
+			
+			repReturn = new JsonRepresentation(systemCounter.toString());
+			DatabaseManager.disconnectFromDatabase(conn);
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+		}
+		return repReturn;
+		
+	}
+	
+	
+	/**
+	 * This method returns the counters of the open issues in not yet classified system
+	 * @param simId: id of the simulator
+	 * @return the list of the systems with the counter of the open issues
+	 */
+	private Representation getNotYetClassifiedCounterOfIssues(String simId) {
+		
+		ResultSet rs = null;
+		Representation repReturn = null;
+		try {
+			//connection to db
+			Connection conn=DatabaseManager.connectToDatabase();
+			
+			String query;
+			Statement st = conn.createStatement();
+			query = "SELECT  systems.id_system, systems.name FROM systems WHERE systems.simulator="+simId+" AND systems.name='not_classified'";
+			rs=st.executeQuery(query);
+			rs.next();
+			JsonObject systemCounter = new JsonObject();
+			systemCounter.addProperty("system_name", rs.getString("name"));		
+			systemCounter.addProperty("id_system", rs.getString("id_system"));
+			systemCounter.addProperty("counter", 0);
+			rs.close();
+			query = "SELECT  distinct systems.id_system, systems.name, COUNT(issues.id_issue) AS counter FROM issues, systems, sessions WHERE systems.id_system=issues.system AND sessions.id_session=issues.session AND systems.name='not_classified' AND issues.state='open' AND sessions.simulator="+simId+" GROUP BY systems.id_system";
+			rs=st.executeQuery(query);
+			while (rs.next()) {
+				systemCounter.addProperty("system_name", rs.getString("name"));		
+				systemCounter.addProperty("id_system", rs.getString("id_system"));
+				systemCounter.addProperty("counter", rs.getString("counter"));
+			}
+						
+			repReturn = new JsonRepresentation(systemCounter.toString());
+			DatabaseManager.disconnectFromDatabase(conn);
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+		}
+		return repReturn;
+		
+	}
+	
+	
+	
 	
 	
 	/**
@@ -1005,7 +1342,7 @@ public class Issues extends ServerResource{
 			Connection conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issues of the specified session
-			String query = "SELECT issues.id_issue, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name FROM issues, users, systems, sessions WHERE users.id_user=issues.user_raiser AND systems.id_system=issues.system AND sessions.id_session=issues.session AND sessions.simulator='"+simId+"' AND issues.component="+compId;
+			String query = "SELECT issues.id_issue, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name, tags.name AS tag_name FROM issues, users, systems, sessions, tags WHERE tags.id_tag=issues.tag AND users.id_user=issues.user_raiser AND systems.id_system=issues.system AND sessions.id_session=issues.session AND sessions.simulator='"+simId+"' AND issues.component="+compId;
 			Statement st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
@@ -1021,6 +1358,7 @@ public class Issues extends ServerResource{
 				jsonIssue.addProperty("first_name_raiser", rs.getString("first_name"));
 				jsonIssue.addProperty("last_name_raiser", rs.getString("last_name"));
 				jsonIssue.addProperty("system", rs.getString("name"));
+				jsonIssue.addProperty("tag", rs.getString("tag_name"));
 				
 				issuesList.add(jsonIssue);				
 			}
@@ -1054,7 +1392,7 @@ public class Issues extends ServerResource{
 			Connection conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issues of the specified session
-			String query = "SELECT issues.id_issue, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name FROM issues, users, systems WHERE users.id_user=issues.user_raiser AND systems.id_system=issues.system AND systems.name='"+systemName+"' AND issues.session="+sesId;
+			String query = "SELECT issues.id_issue, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name, tags.name AS tag_name FROM issues, users, systems, tags WHERE tags.id_tag=issues.tag AND users.id_user=issues.user_raiser AND systems.id_system=issues.system AND systems.name='"+systemName+"' AND issues.session="+sesId;
 			Statement st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
@@ -1070,6 +1408,7 @@ public class Issues extends ServerResource{
 				jsonIssue.addProperty("first_name_raiser", rs.getString("first_name"));
 				jsonIssue.addProperty("last_name_raiser", rs.getString("last_name"));
 				jsonIssue.addProperty("system", rs.getString("name"));
+				jsonIssue.addProperty("tag", rs.getString("tag_name"));
 				
 				issuesList.add(jsonIssue);				
 			}
@@ -1153,7 +1492,7 @@ public class Issues extends ServerResource{
 			Connection conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issues of the specified session
-			String query = "SELECT issues.id_issue, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name FROM issues, users, systems WHERE users.id_user=issues.user_raiser AND systems.id_system=issues.system AND issues.session="+sesId;
+			String query = "SELECT issues.id_issue, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name, tags.name AS tag_name FROM issues, users, systems, tags WHERE tags.id_tag=issues.tag AND users.id_user=issues.user_raiser AND systems.id_system=issues.system AND issues.session="+sesId;
 			Statement st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
@@ -1169,6 +1508,7 @@ public class Issues extends ServerResource{
 				jsonIssue.addProperty("first_name_raiser", rs.getString("first_name"));
 				jsonIssue.addProperty("last_name_raiser", rs.getString("last_name"));
 				jsonIssue.addProperty("system", rs.getString("name"));
+				jsonIssue.addProperty("tag", rs.getString("tag_name"));
 				
 				issuesList.add(jsonIssue);				
 			}
@@ -1202,7 +1542,7 @@ public class Issues extends ServerResource{
 			Connection conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issues of the specified session
-			String query = "SELECT issues.id_issue, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name FROM issues, users, systems, sessions WHERE users.id_user=issues.user_raiser AND systems.id_system=issues.system AND sessions.id_session=issues.session AND sessions.simulator="+simId;
+			String query = "SELECT issues.id_issue, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name, tags.name AS tag_name FROM issues, users, systems, sessions, tags WHERE tags.id_tag=issues.tag AND users.id_user=issues.user_raiser AND systems.id_system=issues.system AND sessions.id_session=issues.session AND sessions.simulator="+simId;
 			Statement st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
@@ -1218,6 +1558,54 @@ public class Issues extends ServerResource{
 				jsonIssue.addProperty("first_name_raiser", rs.getString("first_name"));
 				jsonIssue.addProperty("last_name_raiser", rs.getString("last_name"));
 				jsonIssue.addProperty("system", rs.getString("name"));
+				jsonIssue.addProperty("tag", rs.getString("tag_name"));
+				
+				issuesList.add(jsonIssue);				
+			}
+			repReturn = new JsonRepresentation(issuesList.toString());
+			DatabaseManager.disconnectFromDatabase(conn);
+			
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+		}
+		return repReturn;
+	}
+	
+	
+	/**
+	 * This method find in the db all the new and described issues of a simulator given as input parameter. Return the id,
+	 * the raise time,the status and the type of the issue(hardware or software - caution or warning)
+	 * 
+	 * @param simId: id of the simulator on which we want to exec the query
+	 * @return the list of the issues requested in a json
+	 */
+	private Representation getNewDescribedIssuesForCurrentSimulator(String simId)
+	{
+		ResultSet rs = null;
+		Representation repReturn = null;
+		// Declare the JDBC objects.
+
+		try {
+			//connection to db
+			Connection conn=DatabaseManager.connectToDatabase();
+						
+			//query to find issues of the specified session
+			String query = "SELECT issues.id_issue, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state FROM issues, sessions WHERE sessions.id_session=issues.session AND (issues.state='new' OR issues.state='described') AND sessions.simulator="+simId;
+			Statement st = conn.createStatement();
+			rs=st.executeQuery(query);
+			
+			// Iterate through the data in the result set and display it.
+			JsonArray issuesList = new JsonArray();
+			while (rs.next()) {
+				JsonObject jsonIssue = new JsonObject();
+				jsonIssue.addProperty("id_issue", rs.getInt("id_issue"));		
+				jsonIssue.addProperty("raise_time", rs.getString("raise_time"));
+				jsonIssue.addProperty("hw_sw", rs.getString("hw_sw"));
+				jsonIssue.addProperty("cau_war", rs.getString("cau_war"));
+				jsonIssue.addProperty("state", rs.getString("state"));
 				
 				issuesList.add(jsonIssue);				
 			}
@@ -1249,7 +1637,7 @@ public class Issues extends ServerResource{
 			Connection conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issue with specified id
-			String query = "SELECT distinct *, systems.name as system_name, subsystems.name as subsystem_name, components.name as component_name FROM issues, systems, subsystems, components WHERE (subsystems.id_subsystem=issues.subsystem OR issues.subsystem is NULL) AND (components.id_component=issues.component OR issues.component is NULL) AND systems.id_system=issues.system AND issues.id_issue="+issueId+" GROUP BY issues.id_issue ";
+			String query = "SELECT distinct *, systems.name as system_name, subsystems.name as subsystem_name, components.name as component_name, tags.name AS tag_name FROM issues, systems, subsystems, components, tags WHERE (tags.id_tag=issues.tag OR issues.tag is NULL) AND (subsystems.id_subsystem=issues.subsystem OR issues.subsystem is NULL) AND (components.id_component=issues.component OR issues.component is NULL) AND systems.id_system=issues.system AND issues.id_issue="+issueId+" GROUP BY issues.id_issue ";
 			Statement st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
@@ -1281,6 +1669,12 @@ public class Issues extends ServerResource{
 				jsonIssue.addProperty("priority", rs.getString("priority"));
 				jsonIssue.addProperty("severity", rs.getString("severity"));
 				jsonIssue.addProperty("session", rs.getString("session"));
+				
+				if(rs.getString("tag")==null)
+					jsonIssue.addProperty("tag", "No Tag");
+				else
+					jsonIssue.addProperty("tag", rs.getString("tag_name"));
+				
 				issuesList.add(jsonIssue);				
 			}
 			repReturn = new JsonRepresentation(issuesList.toString());
@@ -1391,7 +1785,7 @@ public class Issues extends ServerResource{
 			conn=DatabaseManager.connectToDatabase();
 			
 			//upadate the description with new description where issue_id is the specified one
-			String query="UPDATE `osmose`.`issues` SET `type` = ?, `priority` = ?, `severity` = ?, `system` = ?, `subsystem` = ?, `component` = ?, `state` = ?  WHERE `issues`.`id_issue` = ?";
+			String query="UPDATE `osmose`.`issues` SET `type` = ?, `priority` = ?, `severity` = ?, `system` = ?, `subsystem` = ?, `component` = ?, `state` = ?, hw_sw = ?, cau_war = ?  WHERE `issues`.`id_issue` = ?";
 		
 			PreparedStatement preparedStmt = conn.prepareStatement(query);
 			
@@ -1438,11 +1832,16 @@ public class Issues extends ServerResource{
 			}
 			
 			preparedStmt.setString(7, "described");
+			preparedStmt.setString(8, jsonIssue.get("hw_sw").getAsString());
+			preparedStmt.setString(9, jsonIssue.get("cau_war").getAsString());
 
 			if(jsonIssue.get("id_issue").getAsString().compareTo(Constants.NONE)!=0)
-				preparedStmt.setString(8, jsonIssue.get("id_issue").getAsString());
+				preparedStmt.setString(10, jsonIssue.get("id_issue").getAsString());
 			else
-				preparedStmt.setNull(8, java.sql.Types.INTEGER);
+				preparedStmt.setNull(10, java.sql.Types.INTEGER);
+			
+			
+			
 			
 			preparedStmt.executeUpdate();
 			preparedStmt.close(); 
@@ -1602,6 +2001,10 @@ public class Issues extends ServerResource{
 	}
 
 
+	
+	
+	
+	
 
 	/**
 	 * This method return a list of audio file of the specified issue in base64 in a json.
