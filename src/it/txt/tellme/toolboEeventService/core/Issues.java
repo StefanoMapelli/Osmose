@@ -1042,7 +1042,7 @@ public class Issues extends ServerResource{
 			Connection conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issues of the specified session
-			String query = "SELECT issues.id_issue, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name, tags.name AS tag FROM issues, users, systems, tags WHERE tags.id_tag=issues.tag AND users.id_user=issues.user_raiser AND systems.id_system=issues.system AND systems.id_system="+systemId;
+			String query = "SELECT issues.id_issue, issues.title, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name, tags.name AS tag FROM issues, users, systems, tags WHERE tags.id_tag=issues.tag AND users.id_user=issues.user_raiser AND systems.id_system=issues.system AND systems.id_system="+systemId;
 			Statement st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
@@ -1059,6 +1059,7 @@ public class Issues extends ServerResource{
 				jsonIssue.addProperty("last_name_raiser", rs.getString("last_name"));
 				jsonIssue.addProperty("system", rs.getString("name"));
 				jsonIssue.addProperty("tag", rs.getString("tag"));
+				jsonIssue.addProperty("title", rs.getString("title"));
 				
 				issuesList.add(jsonIssue);				
 			}
@@ -1096,11 +1097,11 @@ public class Issues extends ServerResource{
 			//query to find issues of the specified session
 			if(status.compareTo("closed")==0)
 			{
-				query = "SELECT issues.id_issue, tags.name AS tag, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name FROM tags, issues, users, systems WHERE tags.id_tag=issues.tag AND (issues.state='rejected' OR issues.state='fixed') AND issues.cau_war='"+type+"' AND users.id_user=issues.user_raiser AND systems.id_system=issues.system AND systems.id_system="+sysId;
+				query = "SELECT issues.id_issue, issues.title, tags.name AS tag, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name FROM tags, issues, users, systems WHERE tags.id_tag=issues.tag AND (issues.state='rejected' OR issues.state='fixed') AND issues.cau_war='"+type+"' AND users.id_user=issues.user_raiser AND systems.id_system=issues.system AND systems.id_system="+sysId;
 			}
 			else
 			{
-				query = "SELECT issues.id_issue, tags.name AS tag, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name FROM tags, issues, users, systems WHERE tags.id_tag=issues.tag AND issues.state='"+status+"' AND issues.cau_war='"+type+"' AND users.id_user=issues.user_raiser AND systems.id_system=issues.system AND systems.id_system="+sysId;
+				query = "SELECT issues.id_issue, issues.title, tags.name AS tag, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name FROM tags, issues, users, systems WHERE tags.id_tag=issues.tag AND issues.state='"+status+"' AND issues.cau_war='"+type+"' AND users.id_user=issues.user_raiser AND systems.id_system=issues.system AND systems.id_system="+sysId;
 			}
 			
 			Statement st = conn.createStatement();
@@ -1119,6 +1120,7 @@ public class Issues extends ServerResource{
 				jsonIssue.addProperty("last_name_raiser", rs.getString("last_name"));
 				jsonIssue.addProperty("system", rs.getString("name"));
 				jsonIssue.addProperty("tag", rs.getString("tag"));
+				jsonIssue.addProperty("title", rs.getString("title"));
 				
 				issuesList.add(jsonIssue);				
 			}
@@ -1567,7 +1569,7 @@ System.out.println("Update tag");
 			      preparedStmt.setString(13, Constants.PRIORITY_LOW);
 			      preparedStmt.setString(14, Constants.SEVERITY_MODERATE);
 			      preparedStmt.setString(15, jsonIssue.get("session").getAsString());
-			      preparedStmt.setString(15, Constants.DEFAULT_TAG);
+			      preparedStmt.setString(16, Constants.DEFAULT_TAG);
 			      preparedStmt.setString(17, jsonIssue.get("id_user").getAsString());
 			      
 			      
@@ -1923,7 +1925,7 @@ System.out.println("Update tag");
 			Connection conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issues of the specified session
-			String query = "SELECT issues.id_issue, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name, tags.name AS tag_name FROM issues, users, systems, sessions, tags WHERE tags.id_tag=issues.tag AND sessions.id_session=issues.session AND users.id_user=issues.user_raiser AND systems.id_system=issues.system AND systems.name='"+systemName+"' AND sessions.simulator="+simId;
+			String query = "SELECT issues.id_issue, issues.title, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name, tags.name AS tag_name FROM issues, users, systems, sessions, tags WHERE tags.id_tag=issues.tag AND sessions.id_session=issues.session AND users.id_user=issues.user_raiser AND systems.id_system=issues.system AND systems.name='"+systemName+"' AND sessions.simulator="+simId;
 			Statement st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
@@ -1940,6 +1942,7 @@ System.out.println("Update tag");
 				jsonIssue.addProperty("last_name_raiser", rs.getString("last_name"));
 				jsonIssue.addProperty("system", rs.getString("name"));
 				jsonIssue.addProperty("tag", rs.getString("tag_name"));
+				jsonIssue.addProperty("title", rs.getString("title"));
 				
 				issuesList.add(jsonIssue);				
 			}
@@ -2162,7 +2165,7 @@ System.out.println("Update tag");
 			Connection conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issues of the specified session
-			String query = "SELECT issues.id_issue, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name, tags.name AS tag_name FROM issues, users, systems, sessions, tags WHERE tags.id_tag=issues.tag AND users.id_user=issues.user_raiser AND systems.id_system=issues.system AND sessions.id_session=issues.session AND sessions.simulator='"+simId+"' AND issues.component="+compId;
+			String query = "SELECT issues.id_issue, issues.title, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name, tags.name AS tag_name FROM issues, users, systems, sessions, tags WHERE tags.id_tag=issues.tag AND users.id_user=issues.user_raiser AND systems.id_system=issues.system AND sessions.id_session=issues.session AND sessions.simulator='"+simId+"' AND issues.component="+compId;
 			Statement st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
@@ -2179,6 +2182,7 @@ System.out.println("Update tag");
 				jsonIssue.addProperty("last_name_raiser", rs.getString("last_name"));
 				jsonIssue.addProperty("system", rs.getString("name"));
 				jsonIssue.addProperty("tag", rs.getString("tag_name"));
+				jsonIssue.addProperty("title", rs.getString("title"));
 				
 				issuesList.add(jsonIssue);				
 			}
@@ -2212,7 +2216,7 @@ System.out.println("Update tag");
 			Connection conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issues of the specified session
-			String query = "SELECT issues.id_issue, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name, tags.name AS tag_name FROM issues, users, systems, tags WHERE tags.id_tag=issues.tag AND users.id_user=issues.user_raiser AND systems.id_system=issues.system AND systems.name='"+systemName+"' AND issues.session="+sesId;
+			String query = "SELECT issues.id_issue, issues.title, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name, tags.name AS tag_name FROM issues, users, systems, tags WHERE tags.id_tag=issues.tag AND users.id_user=issues.user_raiser AND systems.id_system=issues.system AND systems.name='"+systemName+"' AND issues.session="+sesId;
 			Statement st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
@@ -2229,6 +2233,7 @@ System.out.println("Update tag");
 				jsonIssue.addProperty("last_name_raiser", rs.getString("last_name"));
 				jsonIssue.addProperty("system", rs.getString("name"));
 				jsonIssue.addProperty("tag", rs.getString("tag_name"));
+				jsonIssue.addProperty("title", rs.getString("title"));
 				
 				issuesList.add(jsonIssue);				
 			}
@@ -2312,7 +2317,7 @@ System.out.println("Update tag");
 			Connection conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issues of the specified session
-			String query = "SELECT issues.id_issue, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name, tags.name AS tag_name FROM issues, users, systems, tags WHERE tags.id_tag=issues.tag AND users.id_user=issues.user_raiser AND systems.id_system=issues.system AND issues.session="+sesId;
+			String query = "SELECT issues.id_issue, issues.title, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name, tags.name AS tag_name FROM issues, users, systems, tags WHERE tags.id_tag=issues.tag AND users.id_user=issues.user_raiser AND systems.id_system=issues.system AND issues.session="+sesId;
 			Statement st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
@@ -2329,6 +2334,7 @@ System.out.println("Update tag");
 				jsonIssue.addProperty("last_name_raiser", rs.getString("last_name"));
 				jsonIssue.addProperty("system", rs.getString("name"));
 				jsonIssue.addProperty("tag", rs.getString("tag_name"));
+				jsonIssue.addProperty("title", rs.getString("title"));
 				
 				issuesList.add(jsonIssue);				
 			}
@@ -2362,7 +2368,7 @@ System.out.println("Update tag");
 			Connection conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issues of the specified session
-			String query = "SELECT issues.id_issue, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name, tags.name AS tag_name FROM issues, users, systems, sessions, tags WHERE tags.id_tag=issues.tag AND users.id_user=issues.user_raiser AND systems.id_system=issues.system AND sessions.id_session=issues.session AND sessions.simulator="+simId;
+			String query = "SELECT issues.id_issue, issues.title, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name, tags.name AS tag_name FROM issues, users, systems, sessions, tags WHERE tags.id_tag=issues.tag AND users.id_user=issues.user_raiser AND systems.id_system=issues.system AND sessions.id_session=issues.session AND sessions.simulator="+simId;
 			Statement st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
@@ -2379,6 +2385,7 @@ System.out.println("Update tag");
 				jsonIssue.addProperty("last_name_raiser", rs.getString("last_name"));
 				jsonIssue.addProperty("system", rs.getString("name"));
 				jsonIssue.addProperty("tag", rs.getString("tag_name"));
+				jsonIssue.addProperty("title", rs.getString("title"));
 				
 				issuesList.add(jsonIssue);				
 			}
@@ -2474,6 +2481,12 @@ System.out.println("Update tag");
 				jsonIssue.addProperty("cau_war", rs.getString("cau_war"));
 				jsonIssue.addProperty("state", rs.getString("state"));
 				jsonIssue.addProperty("system", rs.getString("system_name"));
+				
+				if(rs.getString("title")==null)
+					jsonIssue.addProperty("title", "null");
+				else
+					jsonIssue.addProperty("title", rs.getString("title"));
+				
 				
 				if(rs.getString("subsystem")==null)
 					jsonIssue.addProperty("subsystem", "null");
@@ -2605,7 +2618,7 @@ System.out.println("Update tag");
 			conn=DatabaseManager.connectToDatabase();
 			
 			//upadate the description with new description where issue_id is the specified one
-			String query="UPDATE `osmose`.`issues` SET `type` = ?, `priority` = ?, `severity` = ?, `system` = ?, `subsystem` = ?, `component` = ?, `state` = ?, hw_sw = ?, cau_war = ?  WHERE `issues`.`id_issue` = ?";
+			String query="UPDATE `osmose`.`issues` SET `type` = ?, `priority` = ?, `severity` = ?, `system` = ?, `subsystem` = ?, `component` = ?, `state` = ?, hw_sw = ?, cau_war = ?, title = ? WHERE `issues`.`id_issue` = ?";
 		
 			PreparedStatement preparedStmt = conn.prepareStatement(query);
 			
@@ -2654,11 +2667,12 @@ System.out.println("Update tag");
 			preparedStmt.setString(7, "described");
 			preparedStmt.setString(8, jsonIssue.get("hw_sw").getAsString());
 			preparedStmt.setString(9, jsonIssue.get("cau_war").getAsString());
+			preparedStmt.setString(10, jsonIssue.get("title").getAsString());
 
 			if(jsonIssue.get("id_issue").getAsString().compareTo(Constants.NONE)!=0)
-				preparedStmt.setString(10, jsonIssue.get("id_issue").getAsString());
+				preparedStmt.setString(11, jsonIssue.get("id_issue").getAsString());
 			else
-				preparedStmt.setNull(10, java.sql.Types.INTEGER);
+				preparedStmt.setNull(11, java.sql.Types.INTEGER);
 			
 			
 			

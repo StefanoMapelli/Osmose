@@ -175,7 +175,7 @@ public class Simulators extends ServerResource{
 			Connection conn=DatabaseManager.connectToDatabase();
 						
 			//query to find data of the components of the simulator
-			String query = "SELECT systems.name as system_name, subsystems.name as subsystem_name, components.name, components.id_component, components.component_state, components.life_time, components.mtbf, components.hw_sw FROM systems, subsystems, components WHERE systems.id_system=subsystems.system AND subsystems.id_subsystem=components.subsystem AND (components.component_state='Installed' OR components.component_state='Broken') AND components.simulator="+simId;
+			String query = "SELECT systems.name as system_name, systems.id_system, subsystems.id_subsystem, subsystems.name as subsystem_name, components.name, components.id_component, components.component_state, components.life_time, components.mtbf, components.hw_sw FROM systems, subsystems, components WHERE systems.id_system=subsystems.system AND subsystems.id_subsystem=components.subsystem AND (components.component_state='Installed' OR components.component_state='Broken') AND components.simulator="+simId;
 			Statement st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
@@ -188,7 +188,9 @@ public class Simulators extends ServerResource{
 				jsonComponent.addProperty("component", rs.getString("name"));
 				jsonComponent.addProperty("id_component", rs.getString("id_component"));
 				jsonComponent.addProperty("system_name", rs.getString("system_name"));
+				jsonComponent.addProperty("system_id", rs.getString("id_system"));
 				jsonComponent.addProperty("subsystem_name", rs.getString("subsystem_name"));
+				jsonComponent.addProperty("subsystem_id", rs.getString("id_subsystem"));
 				//if the life time is near to expected life time we put alert as state
 				double life=Float.parseFloat(rs.getString("life_time"));
 				double mtbf=Float.parseFloat(rs.getString("mtbf"));

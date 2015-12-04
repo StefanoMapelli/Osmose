@@ -69,7 +69,7 @@ public class Components extends ServerResource{
 				//connection to db
 				Connection conn=DatabaseManager.connectToDatabase();
 							
-				String query = "SELECT components.*, systems.name as system_name, subsystems.name as subsystem_name FROM components, systems, subsystems WHERE components.simulator="+simId+" AND components.hw_sw='h' AND systems.id_system=subsystems.system AND components.subsystem=subsystems.id_subsystem AND components.life_time>components.mtbf";
+				String query = "SELECT components.*, systems.id_system, subsystems.id_subsystem, systems.name as system_name, subsystems.name as subsystem_name FROM components, systems, subsystems WHERE components.simulator="+simId+" AND components.hw_sw='h' AND systems.id_system=subsystems.system AND components.subsystem=subsystems.id_subsystem AND components.life_time>components.mtbf";
 				Statement st = conn.createStatement();
 				rs=st.executeQuery(query);				
 				
@@ -90,6 +90,8 @@ public class Components extends ServerResource{
 					alertObject.addProperty("id_component", rs.getString("id_component"));
 					alertObject.addProperty("name", rs.getString("name"));
 					alertObject.addProperty("system", rs.getString("system_name"));
+					alertObject.addProperty("subsystem_id", rs.getString("id_subsystem"));
+					alertObject.addProperty("system_id", rs.getString("id_system"));
 					
 					alertsList.add(alertObject);				
 				}
