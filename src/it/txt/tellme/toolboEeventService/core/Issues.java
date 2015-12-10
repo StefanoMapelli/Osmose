@@ -55,8 +55,6 @@ import com.google.gson.JsonParser;
 
 public class Issues extends ServerResource{
 	
-	
-	
 	/**
 	 * GET method
 	 */
@@ -66,7 +64,6 @@ public class Issues extends ServerResource{
 		System.out.println("Dispatch get");
 		
 		Map<String, String> queryMap = getQuery().getValuesMap();
-		System.out.println("Size of parameter map:................"+queryMap.size());
 
 		if(queryMap.size()==1 && queryMap.containsKey(Constants.SESSION_ID))
 		{
@@ -128,6 +125,14 @@ public class Issues extends ServerResource{
 			repReturn = getIssuesWithSystemAndSession(sesId, systemName);
 			System.out.println("Get issues with specified system and session");
 		}
+		else if(queryMap.size()==2 && queryMap.containsKey(Constants.SESSION_ID) && queryMap.containsKey(Constants.SYSTEM_ID))
+		{
+			//get issues of the specified system and session
+			String sesId=queryMap.get(Constants.SESSION_ID);
+			String systemId=queryMap.get(Constants.SYSTEM_ID);
+			repReturn = getIssuesStatisticsOfTheSystemIdAndSessionId(sesId, systemId);
+			System.out.println("Get issues with specified system and session");
+		}
 		else if(queryMap.size()==2 && queryMap.containsKey(Constants.SIMULATOR_ID) && queryMap.containsKey(Constants.SYSTEM_NAME))
 		{
 			//get issues of the specified system and session
@@ -178,6 +183,29 @@ public class Issues extends ServerResource{
 			String simId=queryMap.get(Constants.SIMULATOR_ID);
 			repReturn = getCounterOfIssuesOfSimulator(simId);
 			System.out.println("get numbers of issues for the simualtor");
+		}
+		else if(queryMap.size()==2 && queryMap.containsKey(Constants.SESSION_ID) && queryMap.get(Constants.ISSUE_OPERATION).compareTo(Constants.NEW_DESCRIBED_ISSUES)==0)
+		{
+			//get issues new and described of a session
+			String sesId=queryMap.get(Constants.SESSION_ID);
+			repReturn = getNewDescribedIssuesForCurrentSession(sesId);
+			System.out.println("get new and described issues for a session");
+		}
+		else if(queryMap.size()==3 && queryMap.containsKey(Constants.SIMULATOR_ID) && queryMap.containsKey(Constants.SESSION_ID) && queryMap.get(Constants.ISSUE_OPERATION).compareTo(Constants.SYSTEM_OPEN_COUNTERS)==0)
+		{
+			//get counters of the open issues of systems of a simulator
+			String simId=queryMap.get(Constants.SIMULATOR_ID);
+			String sesId=queryMap.get(Constants.SESSION_ID);
+			repReturn = getStateOpenIssueCounterForSystemsAndSession(simId, sesId);
+			System.out.println("Get counters of the open issues of systems of a simulator in a session");
+		}
+		else if(queryMap.size()==3 && queryMap.containsKey(Constants.SIMULATOR_ID) && queryMap.containsKey(Constants.SESSION_ID) && queryMap.get(Constants.ISSUE_OPERATION).compareTo(Constants.NOT_YET_CLASSIFIED_COUNTER)==0)
+		{
+			//get issues of a session in the state not_yet_classified
+			String sesId=queryMap.get(Constants.SESSION_ID);
+			String simId=queryMap.get(Constants.SIMULATOR_ID);
+			repReturn = getNotYetClassifiedCounterOfSession(sesId, simId);
+			System.out.println("get issues of a session in the state not_yet_classified");
 		}
 		else if(queryMap.size()==3 && queryMap.containsKey(Constants.SYSTEM_ID) && queryMap.containsKey(Constants.ISSUE_STATUS) && queryMap.containsKey(Constants.ISSUE_TYPE))
 		{
@@ -256,6 +284,16 @@ public class Issues extends ServerResource{
 				System.out.println("TAG get number of issue for each status of the issue");
 			}
 		}
+		else if(queryMap.size()==4 && queryMap.containsKey(Constants.SYSTEM_ID) && queryMap.containsKey(Constants.SESSION_ID) && queryMap.containsKey(Constants.ISSUE_STATUS) && queryMap.containsKey(Constants.ISSUE_TYPE))
+		{
+			//get issues list
+			String sysId=queryMap.get(Constants.SYSTEM_ID);
+			String type=queryMap.get(Constants.ISSUE_TYPE);
+			String status=queryMap.get(Constants.ISSUE_STATUS);
+			String sesId=queryMap.get(Constants.SESSION_ID);
+			repReturn = getIssuesOfSystemAndSessionWithStatusAndType(sysId, type, status, sesId);
+			System.out.println("Get issues list with, simulator, system,  issue status and issue type");
+		}
 		else 
 		{
 			setStatus(Status.CLIENT_ERROR_BAD_REQUEST);
@@ -263,6 +301,7 @@ public class Issues extends ServerResource{
 		
 		return repReturn;
 	}
+
 
 	/**
 	 * POST method
@@ -331,6 +370,272 @@ public class Issues extends ServerResource{
 			setStatus(Status.CLIENT_ERROR_BAD_REQUEST);
 		}
 		
+		return repReturn;
+	}
+	
+	
+	/**
+	 * This method gets all the issues in the session with specified system, state, type
+	 * @param sysId
+	 * @param type
+	 * @param status
+	 * @param sesId
+	 * @return
+	 */
+	private Representation getIssuesOfSystemAndSessionWithStatusAndType(
+			String sysId, String type, String status, String sesId) {
+		ResultSet rs = null;
+		Representation repReturn = null;
+		// Declare the JDBC objects.
+
+		try {
+			//connection to db
+			Connection conn=DatabaseManager.connectToDatabase();
+			String query;
+			//query to find issues of the specified session
+			if(status.compareTo("closed")==0)
+			{
+				query = "SELECT issues.id_issue, issues.title, tags.name AS tag, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name FROM tags, issues, users, systems WHERE issues.session="+sesId+" AND tags.id_tag=issues.tag AND (issues.state='rejected' OR issues.state='fixed') AND issues.cau_war='"+type+"' AND users.id_user=issues.user_raiser AND systems.id_system=issues.system AND systems.id_system="+sysId;
+			}
+			else
+			{
+				query = "SELECT issues.id_issue, issues.title, tags.name AS tag, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name FROM tags, issues, users, systems WHERE issues.session="+sesId+" AND tags.id_tag=issues.tag AND issues.state='"+status+"' AND issues.cau_war='"+type+"' AND users.id_user=issues.user_raiser AND systems.id_system=issues.system AND systems.id_system="+sysId;
+			}
+			
+			Statement st = conn.createStatement();
+			rs=st.executeQuery(query);
+			
+			// Iterate through the data in the result set and display it.
+			JsonArray issuesList = new JsonArray();
+			while (rs.next()) {
+				JsonObject jsonIssue = new JsonObject();
+				jsonIssue.addProperty("id_issue", rs.getInt("id_issue"));		
+				jsonIssue.addProperty("raise_time", rs.getString("raise_time"));
+				jsonIssue.addProperty("hw_sw", rs.getString("hw_sw"));
+				jsonIssue.addProperty("cau_war", rs.getString("cau_war"));
+				jsonIssue.addProperty("state", rs.getString("state"));
+				jsonIssue.addProperty("first_name_raiser", rs.getString("first_name"));
+				jsonIssue.addProperty("last_name_raiser", rs.getString("last_name"));
+				jsonIssue.addProperty("system", rs.getString("name"));
+				jsonIssue.addProperty("tag", rs.getString("tag"));
+				jsonIssue.addProperty("title", rs.getString("title"));
+				
+				issuesList.add(jsonIssue);				
+			}
+			repReturn = new JsonRepresentation(issuesList.toString());
+			DatabaseManager.disconnectFromDatabase(conn);
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+		}
+		return repReturn;
+	}
+	
+	
+	
+	/**
+	 * This method gets all counters of the open issues in each system
+	 * @param simId
+	 * @param sesId
+	 * @return
+	 */
+	private Representation getStateOpenIssueCounterForSystemsAndSession(
+			String simId, String sesId) {
+		
+		ResultSet rs = null;
+		ResultSet allSystemsRs = null;
+		Representation repReturn = null;
+
+		try {
+			//connection to db
+			Connection conn=DatabaseManager.connectToDatabase();
+			
+			String query="SELECT distinct systems.id_system, systems.name FROM systems, subsystems, components, simulators WHERE simulators.id_simulator="+simId+" AND components.simulator=simulators.id_simulator AND systems.id_system=subsystems.system AND subsystems.id_subsystem=components.subsystem";
+			Statement st = conn.createStatement();
+			allSystemsRs=st.executeQuery(query);
+			
+			ArrayList<ArrayList<String>> systems=new ArrayList<ArrayList<String>>();
+			
+			while (allSystemsRs.next()) {
+				ArrayList<String> idNamePair=new ArrayList<String>();
+				idNamePair.add(allSystemsRs.getString("name"));
+				idNamePair.add(allSystemsRs.getString("id_system"));
+				System.out.println(idNamePair.get(0));
+				systems.add(idNamePair);
+			}
+			
+			query = "SELECT  distinct systems.id_system, systems.name, COUNT(issues.id_issue) AS counter FROM issues, systems, sessions WHERE sessions.id_session="+sesId+" AND systems.id_system=issues.system AND sessions.id_session=issues.session AND issues.state='open' AND systems.name!='not_classified'  AND sessions.simulator="+simId+" GROUP BY systems.id_system";
+			rs=st.executeQuery(query);
+			
+			JsonArray systemList = new JsonArray();
+			while (rs.next()) {
+				JsonObject systemCounter = new JsonObject();
+				ArrayList<String> arrayToRemove=new ArrayList<String>();
+				arrayToRemove.add(rs.getString("name"));
+				arrayToRemove.add(rs.getString("id_system"));
+				systems.remove(arrayToRemove);
+				systemCounter.addProperty("system_name", rs.getString("name"));		
+				systemCounter.addProperty("id_system", rs.getString("id_system"));
+				systemCounter.addProperty("counter", rs.getString("counter"));
+				systemList.add(systemCounter);
+			}
+			
+			for (ArrayList<String> pair : systems) {
+				
+				JsonObject systemCounter = new JsonObject();
+				systemCounter.addProperty("system_name", pair.get(0));		
+				systemCounter.addProperty("id_system", pair.get(1));
+				systemCounter.addProperty("counter", 0);
+				System.out.println("+++"+pair.get(0));
+				systemList.add(systemCounter);
+			}
+			
+			repReturn = new JsonRepresentation(systemList.toString());
+			DatabaseManager.disconnectFromDatabase(conn);
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+		}
+		return repReturn;
+	}
+	
+	
+	/**
+	 * This method gets the statistics of the system in the specified session
+	 * @param sesId
+	 * @param systemId
+	 * @return
+	 */
+	private Representation getIssuesStatisticsOfTheSystemIdAndSessionId(
+			String sesId, String systemId) {
+		ResultSet rs = null;
+		Representation repReturn = null;
+		try {
+			//connection to db
+			Connection conn=DatabaseManager.connectToDatabase();
+			JsonObject systemCounter = new JsonObject();
+			String query;
+			Statement st = conn.createStatement();
+			//numero di cautions aperte
+			query = "SELECT COUNT(*) AS counter FROM issues WHERE issues.session="+sesId+" AND issues.cau_war='c' AND issues.state='open' AND issues.system="+systemId;
+			rs=st.executeQuery(query);
+			rs.next();
+			systemCounter.addProperty("open_cautions", rs.getString("counter"));
+			rs.close();
+			//numero di warnings aperti
+			query = "SELECT COUNT(*) AS counter FROM issues WHERE issues.session="+sesId+" AND issues.cau_war='w' AND issues.state='open' AND issues.system="+systemId;
+			rs=st.executeQuery(query);
+			rs.next();
+			systemCounter.addProperty("open_warnings", rs.getString("counter"));
+			rs.close();
+			//numero di cautions chiuse
+			query = "SELECT COUNT(*) AS counter FROM issues WHERE issues.session="+sesId+" AND issues.cau_war='c' AND (issues.state='rejected' OR issues.state='fixed') AND issues.system="+systemId;
+			rs=st.executeQuery(query);
+			rs.next();
+			systemCounter.addProperty("closed_cautions", rs.getString("counter"));
+			rs.close();
+			//numero di warnings aperte
+			query = "SELECT COUNT(*) AS counter FROM issues WHERE issues.session="+sesId+" AND issues.cau_war='w' AND (issues.state='rejected' OR issues.state='fixed') AND issues.system="+systemId;
+			rs=st.executeQuery(query);
+			rs.next();
+			systemCounter.addProperty("closed_warnings", rs.getString("counter"));
+			rs.close();
+			
+			repReturn = new JsonRepresentation(systemCounter.toString());
+			DatabaseManager.disconnectFromDatabase(conn);
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+		}
+		return repReturn;
+	}
+	
+	
+	/**
+	 * This method get the counter of the not_yet_classified issues in the session
+	 * 
+	 * @param sesId
+	 * @param simId
+	 * @return
+	 */
+	private Representation getNotYetClassifiedCounterOfSession(String sesId, String simId) {
+		
+		ResultSet rs = null;
+		Representation repReturn = null;
+		try {
+			//connection to db
+			Connection conn=DatabaseManager.connectToDatabase();
+			
+			String query;
+			Statement st = conn.createStatement();
+			query = "SELECT  systems.id_system, systems.name FROM systems WHERE systems.simulator="+simId+" AND systems.name='not_classified'";
+			rs=st.executeQuery(query);
+			rs.next();
+			JsonObject systemCounter = new JsonObject();
+			systemCounter.addProperty("system_name", rs.getString("name"));		
+			systemCounter.addProperty("id_system", rs.getString("id_system"));
+			systemCounter.addProperty("counter", 0);
+			rs.close();
+			query = "SELECT  distinct systems.id_system, systems.name, COUNT(issues.id_issue) AS counter FROM issues, systems, sessions WHERE systems.id_system=issues.system AND sessions.id_session=issues.session AND systems.name='not_classified' AND issues.state='open' AND sessions.id_session="+sesId+" AND sessions.simulator="+simId+" GROUP BY systems.id_system";
+			rs=st.executeQuery(query);
+			while (rs.next()) {
+				systemCounter.addProperty("system_name", rs.getString("name"));		
+				systemCounter.addProperty("id_system", rs.getString("id_system"));
+				systemCounter.addProperty("counter", rs.getString("counter"));
+			}
+						
+			repReturn = new JsonRepresentation(systemCounter.toString());
+			DatabaseManager.disconnectFromDatabase(conn);
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+		}
+		return repReturn;
+	}
+	
+	
+	private Representation getNewDescribedIssuesForCurrentSession(String sesId) {
+		ResultSet rs = null;
+		Representation repReturn = null;
+		// Declare the JDBC objects.
+
+		try {
+			//connection to db
+			Connection conn=DatabaseManager.connectToDatabase();
+						
+			//query to find issues of the specified session
+			String query = "SELECT issues.id_issue, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state FROM issues, sessions WHERE sessions.id_session=issues.session AND (issues.state='new' OR issues.state='described') AND sessions.id_session="+sesId+" ORDER BY issues.raise_time DESC";
+			Statement st = conn.createStatement();
+			rs=st.executeQuery(query);
+			
+			JsonArray issuesList = new JsonArray();
+			while (rs.next()) {
+				JsonObject jsonIssue = new JsonObject();
+				jsonIssue.addProperty("id_issue", rs.getInt("id_issue"));		
+				jsonIssue.addProperty("raise_time", rs.getString("raise_time"));
+				jsonIssue.addProperty("hw_sw", rs.getString("hw_sw"));
+				jsonIssue.addProperty("cau_war", rs.getString("cau_war"));
+				jsonIssue.addProperty("state", rs.getString("state"));
+				
+				issuesList.add(jsonIssue);				
+			}
+			repReturn = new JsonRepresentation(issuesList.toString());
+			DatabaseManager.disconnectFromDatabase(conn);
+			
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+		}
 		return repReturn;
 	}
 	

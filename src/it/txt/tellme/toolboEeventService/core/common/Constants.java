@@ -89,6 +89,7 @@ public class Constants {
 		public static final String NUMBER_ISSUE_CAU_WAR_FOR_SYSTEM = "numberOfCauWarForSystem";
 		public static final String NUMBERS_ISSUES_OF_SIMULATORS = "numberOfIssuesOfSimulator";
 		public static final String TAG = "tag";
+		public static final String INSERT_SCHEDULING_WITH_EXCEL = "insertSchedulingWithExcel";
 		
 		
 		

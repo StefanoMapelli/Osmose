@@ -3,12 +3,20 @@ package it.txt.tellme.toolboEeventService.core;
 import it.txt.tellme.toolboEeventService.core.common.Constants;
 import it.txt.tellme.toolboEeventService.core.common.DatabaseManager;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.Iterator;
 import java.util.Map;
 
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.restlet.data.Status;
 import org.restlet.ext.json.JsonRepresentation;
 import org.restlet.representation.Representation;
@@ -139,7 +147,7 @@ public class Sessions extends ServerResource{
 		Map<String, String> queryMap = getQuery().getValuesMap();
 		if(queryMap.size()==0 )
 		{
-			//insert an issue and his data in the db
+			//insert a session in the db
 			repReturn = addSession(entity);
 			System.out.println("Insert new session");
 		}
@@ -147,9 +155,15 @@ public class Sessions extends ServerResource{
 		{
 			if(queryMap.get(Constants.SESSION_OPERATION).compareTo(Constants.UPDATE_FINISH_TIME)==0)
 			{
-				//change description of an issue
+			
 				repReturn = updateEndTimeSession(entity);
 				System.out.println("Update finish time");
+			}
+			else if(queryMap.get(Constants.SESSION_OPERATION).compareTo(Constants.INSERT_SCHEDULING_WITH_EXCEL)==0)
+			{
+				//change description of an issue
+				repReturn = insertSchedulingWithExcelFile(entity);
+				System.out.println("Insert set of sessions with excel file");
 			}
 		}
 		else	
@@ -160,6 +174,52 @@ public class Sessions extends ServerResource{
 	}
 	
 		
+		private Representation insertSchedulingWithExcelFile(Representation entity) {
+			FileInputStream file;
+			try {
+				file = new FileInputStream(new File("C:\\Users\\mapelli\\Desktop\\ProvaExcel.xlsx"));
+				//Create Workbook instance holding reference to .xlsx file
+	            XSSFWorkbook workbook = new XSSFWorkbook(file);
+	          //Get first/desired sheet from the workbook
+	            XSSFSheet sheet = workbook.getSheetAt(0);
+	 
+	            //Iterate through each rows one by one
+	            Iterator<Row> rowIterator = sheet.iterator();
+	            while (rowIterator.hasNext())
+	            {
+	                Row row = rowIterator.next();
+	                //For each row, iterate through all the columns
+	                Iterator<Cell> cellIterator = row.cellIterator();
+	                 
+	                while (cellIterator.hasNext())
+	                {
+	                    Cell cell = cellIterator.next();
+	                    //Check the cell type and format accordingly
+	                    switch (cell.getCellType())
+	                    {
+	                        case Cell.CELL_TYPE_NUMERIC:
+	                            System.out.print(cell.getNumericCellValue() + "t" +cell.getColumnIndex()+cell.getRowIndex());
+	                            
+	                            break;
+	                        case Cell.CELL_TYPE_STRING:
+	                            System.out.print(cell.getStringCellValue() + "t" +cell.getColumnIndex()+cell.getRowIndex());
+	                            break;
+	                    }
+	                }
+	                System.out.println("");
+	            }
+	            file.close();
+	            workbook.close();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			 
+            
+		return null;
+	}
+
+
+
 		/**
 		 * This method adds a new session in the db
 		 * @param entity: information about the new session
