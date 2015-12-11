@@ -80,7 +80,6 @@ public class Components extends ServerResource{
 					if(rs.getFloat("life_time")>rs.getFloat("expected_life_time"))
 					{
 						alertObject.addProperty("alert_status", "Work Time over the critical threshold");
-						break;
 					}
 					else
 					{

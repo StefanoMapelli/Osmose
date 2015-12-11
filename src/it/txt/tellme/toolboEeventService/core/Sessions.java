@@ -3,9 +3,7 @@ package it.txt.tellme.toolboEeventService.core;
 import it.txt.tellme.toolboEeventService.core.common.Constants;
 import it.txt.tellme.toolboEeventService.core.common.DatabaseManager;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -13,10 +11,6 @@ import java.sql.Statement;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.restlet.data.Status;
 import org.restlet.ext.json.JsonRepresentation;
 import org.restlet.representation.Representation;
@@ -25,6 +19,7 @@ import org.restlet.resource.ResourceException;
 import org.restlet.resource.ServerResource;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 /**
@@ -159,12 +154,13 @@ public class Sessions extends ServerResource{
 				repReturn = updateEndTimeSession(entity);
 				System.out.println("Update finish time");
 			}
-			else if(queryMap.get(Constants.SESSION_OPERATION).compareTo(Constants.INSERT_SCHEDULING_WITH_EXCEL)==0)
-			{
-				//change description of an issue
-				repReturn = insertSchedulingWithExcelFile(entity);
-				System.out.println("Insert set of sessions with excel file");
-			}
+		}
+		else if(queryMap.size()==2 && queryMap.containsKey(Constants.SIMULATOR_ID) && queryMap.get(Constants.SESSION_OPERATION).compareTo(Constants.INSERT_SCHEDULING_WITH_EXCEL)==0)
+		{
+			//change description of an issue
+			String simId=queryMap.get(Constants.SIMULATOR_ID);
+			repReturn = insertSchedulingWithExcelFile(entity, simId);
+			System.out.println("Insert set of sessions with excel file");
 		}
 		else	
 		{
@@ -174,48 +170,83 @@ public class Sessions extends ServerResource{
 	}
 	
 		
-		private Representation insertSchedulingWithExcelFile(Representation entity) {
-			FileInputStream file;
+	/**
+	 * This method inserts the sessions in the db. The sessions are in a CSV file
+	 * @param entity: json with the simulator id
+	 * @return json with number of inserted lines and total lines in the csv file
+	 */
+	private Representation insertSchedulingWithExcelFile(Representation entity, String simId) {
+		Representation repReturn = null;
+		ResultSet rs = null;
+		int numberOfLine=0;
+		int numberOfInsertedLine=0;
+		try {	
+			Connection conn=DatabaseManager.connectToDatabase();
+			JsonParser jsonParser = new JsonParser();
+			JsonArray jsonSessionsList = jsonParser.parse(entity.getText()).getAsJsonArray();
 			try {
-				file = new FileInputStream(new File("C:\\Users\\mapelli\\Desktop\\ProvaExcel.xlsx"));
-				//Create Workbook instance holding reference to .xlsx file
-	            XSSFWorkbook workbook = new XSSFWorkbook(file);
-	          //Get first/desired sheet from the workbook
-	            XSSFSheet sheet = workbook.getSheetAt(0);
-	 
-	            //Iterate through each rows one by one
-	            Iterator<Row> rowIterator = sheet.iterator();
-	            while (rowIterator.hasNext())
-	            {
-	                Row row = rowIterator.next();
-	                //For each row, iterate through all the columns
-	                Iterator<Cell> cellIterator = row.cellIterator();
-	                 
-	                while (cellIterator.hasNext())
-	                {
-	                    Cell cell = cellIterator.next();
-	                    //Check the cell type and format accordingly
-	                    switch (cell.getCellType())
-	                    {
-	                        case Cell.CELL_TYPE_NUMERIC:
-	                            System.out.print(cell.getNumericCellValue() + "t" +cell.getColumnIndex()+cell.getRowIndex());
-	                            
-	                            break;
-	                        case Cell.CELL_TYPE_STRING:
-	                            System.out.print(cell.getStringCellValue() + "t" +cell.getColumnIndex()+cell.getRowIndex());
-	                            break;
-	                    }
-	                }
-	                System.out.println("");
-	            }
-	            file.close();
-	            workbook.close();
+				Iterator<JsonElement> iterator=jsonSessionsList.iterator();
+				while (iterator.hasNext()) {
+					JsonArray session=(JsonArray) iterator.next();
+					numberOfLine++;
+						try
+						{
+							String query = "INSERT INTO `sessions`"
+									+ " (`id_session`,"
+									+ " `scheduled_start_time`,"
+									+ " `scheduled_finish_time`,"
+									+ " `planned`,"
+									+ " `simulator`)"
+									+ " VALUES "
+									+ "(?,?,?,?,?)";
+
+							PreparedStatement preparedStmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+
+							preparedStmt.setNull(1, java.sql.Types.INTEGER);
+							preparedStmt.setString(2, session.get(0).getAsString());
+							preparedStmt.setString(3, session.get(1).getAsString());
+							preparedStmt.setString(4, "1");
+							preparedStmt.setString(5, simId);
+
+							// execute the preparedstatement
+							preparedStmt.execute();	
+							rs=preparedStmt.getGeneratedKeys();
+							rs.next();
+							//insert pilot and instructor to the session
+							if(rs!=null)
+							{
+								//if pilot id or instructor id are 0 we use the default user
+								if(session.get(2).getAsString().compareTo("0")==0)
+									addPartecipantToSession(rs.getString(1), Constants.DEFAULT_INSTRUCTOR_ID) ;
+								else
+									addPartecipantToSession(rs.getString(1), session.get(2).getAsString()) ;
+
+								if(session.get(3).getAsString().compareTo("0")==0)
+									addPartecipantToSession(rs.getString(1), Constants.DEFAULT_PILOT_ID) ;
+								else
+									addPartecipantToSession(rs.getString(1), session.get(3).getAsString()) ;						    	  
+							}	
+							numberOfInsertedLine++;
+						}
+						catch(Exception e)
+						{
+							e.printStackTrace();
+						}
+				}
 			} catch (Exception e) {
 				e.printStackTrace();
+			} finally {
+				DatabaseManager.disconnectFromDatabase(conn);
 			}
-			 
-            
-		return null;
+		} catch (Exception e) {
+			e.printStackTrace();
+			repReturn = new StringRepresentation(e.getMessage());
+		}
+		JsonObject jsonReturn = new JsonObject();
+		jsonReturn.addProperty("numberOfSession", numberOfLine);
+		jsonReturn.addProperty("numberOfInsertedSession", numberOfInsertedLine);
+		repReturn = new JsonRepresentation(jsonReturn.toString());
+		return repReturn;
 	}
 
 
