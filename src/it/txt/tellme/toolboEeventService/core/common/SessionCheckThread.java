@@ -19,7 +19,7 @@ public class SessionCheckThread extends Thread{
 			{
 				updateEffectiveTimeTrainingSession();
 				updateEffectiveTimeMaintenanceSession();
-				Thread.sleep(120000);
+				Thread.sleep(600000);
 			} 
 			catch (InterruptedException e) 
 			{

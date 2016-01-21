@@ -39,6 +39,9 @@ public class DatabaseManager {
 				 //session.
 				 SessionCheckThread sessionCheckThread = new SessionCheckThread();
 				 sessionCheckThread.start();  
+				 
+				 //server smtp setting at the first access to server
+				 MailManager.setMailServerSettings();
 			 }
 			 Class.forName(driver).newInstance();
 			 Connection conn = DriverManager.getConnection(url+dbName,userName,password);

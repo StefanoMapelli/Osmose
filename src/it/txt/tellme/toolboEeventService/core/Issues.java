@@ -488,7 +488,6 @@ public class Issues extends ServerResource{
 				systemCounter.addProperty("system_name", pair.get(0));		
 				systemCounter.addProperty("id_system", pair.get(1));
 				systemCounter.addProperty("counter", 0);
-				System.out.println("+++"+pair.get(0));
 				systemList.add(systemCounter);
 			}
 			
@@ -1821,7 +1820,7 @@ System.out.println("Update tag");
 		if (entity != null ) {
 			try {
 				JsonParser jsonParser = new JsonParser();
-				JsonObject jsonIssue = jsonParser.parse(entity.getText()).getAsJsonObject();
+				final JsonObject jsonIssue = jsonParser.parse(entity.getText()).getAsJsonObject();
 				
 				// Establish the connection to the db.
 				conn=DatabaseManager.connectToDatabase();
@@ -1911,7 +1910,6 @@ System.out.println("Update tag");
 			    	  {
 			    		  for(int i=0;i<audios.size();i++)
 			    		  {
-			    			  System.out.println("inserisco:  "+i);
 			    			  addAudioCommentToAnIssue(rs.getString(1), audios.get(i).getAsString(), i) ;
 			    		  }
 			    	  }
@@ -1995,9 +1993,25 @@ System.out.println("Update tag");
 			      System.out.println("Osmose Service Start Recording ---> "+outcome);
 			       */
 			      
-			      
-			      MailManager.sendMailToAdministrator();
-			      
+			      ResultSet rs1 = null;
+
+									
+						//query to find data of the specified simulator
+						query = "SELECT simulators.model FROM simulators, sessions WHERE sessions.id_session="+jsonIssue.get("session").getAsString()+" AND sessions.simulator=simulators.id_simulator";
+						Statement st = conn.createStatement();
+						rs1=st.executeQuery(query);
+						rs1.next();
+						final String model=rs1.getString("model");
+						new Thread(new Runnable() {
+						    public void run() {
+						    	MailManager.sendMailToAdministrator(jsonIssue.get("raise_time").getAsString(),
+							    		  jsonIssue.get("hw_sw").getAsString(),
+							    		  jsonIssue.get("cau_war").getAsString(),
+							    		  model); 
+						    }
+						}).start();
+						
+						
 			      DatabaseManager.disconnectFromDatabase(conn);
 			    	  
 			}catch (Exception e) {
@@ -2296,7 +2310,6 @@ System.out.println("Update tag");
 				ArrayList<String> idNamePair=new ArrayList<String>();
 				idNamePair.add(allSystemsRs.getString("name"));
 				idNamePair.add(allSystemsRs.getString("id_system"));
-				System.out.println(idNamePair.get(0));
 				systems.add(idNamePair);
 			}
 			
@@ -2322,7 +2335,6 @@ System.out.println("Update tag");
 				systemCounter.addProperty("system_name", pair.get(0));		
 				systemCounter.addProperty("id_system", pair.get(1));
 				systemCounter.addProperty("counter", 0);
-				System.out.println("+++"+pair.get(0));
 				systemList.add(systemCounter);
 			}
 			
@@ -2872,7 +2884,6 @@ System.out.println("Update tag");
 			{
 				//take the path
 				String imgPath=rs.getString("image_path");
-				System.out.println("imagePath:------------"+imgPath);
 				//encode the image in base64
 				BufferedImage img = ImageIO.read(new File(imgPath));
 				String imgStr = encodeToString(img, "png");
@@ -3185,7 +3196,6 @@ System.out.println("Update tag");
 			{
 				//take the path
 				String audioPath=rs.getString("audio_path");
-				System.out.println("audioPath:------------"+audioPath);
 				//encode the audio in base64
 				
 				
