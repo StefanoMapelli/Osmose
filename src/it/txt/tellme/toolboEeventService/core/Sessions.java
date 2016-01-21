@@ -169,18 +169,19 @@ public class Sessions extends ServerResource{
 		return repReturn;
 	}
 	
-		
+	
 	/**
-	 * This method inserts the sessions in the db. The sessions are in a CSV file
-	 * @param entity: json with the simulator id
-	 * @return json with number of inserted lines and total lines in the csv file
+	 * This method inserts a list of sessions in the db. The sessions are in a JSON 
+	 * @param entity: json with the list of the sessions to be inserted
+	 * @param simId: id of the simulator 
+	 * @return the number of the sessions in the json list and the number of the inserted sessions
 	 */
 	private Representation insertSchedulingWithExcelFile(Representation entity, String simId) {
 		Representation repReturn = null;
 		ResultSet rs = null;
 		int numberOfLine=0;
 		int numberOfInsertedLine=0;
-		try {	
+		try {
 			Connection conn=DatabaseManager.connectToDatabase();
 			JsonParser jsonParser = new JsonParser();
 			JsonArray jsonSessionsList = jsonParser.parse(entity.getText()).getAsJsonArray();
@@ -191,42 +192,47 @@ public class Sessions extends ServerResource{
 					numberOfLine++;
 						try
 						{
-							String query = "INSERT INTO `sessions`"
-									+ " (`id_session`,"
-									+ " `scheduled_start_time`,"
-									+ " `scheduled_finish_time`,"
-									+ " `planned`,"
-									+ " `simulator`)"
-									+ " VALUES "
-									+ "(?,?,?,?,?)";
-
-							PreparedStatement preparedStmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
-
-							preparedStmt.setNull(1, java.sql.Types.INTEGER);
-							preparedStmt.setString(2, session.get(0).getAsString());
-							preparedStmt.setString(3, session.get(1).getAsString());
-							preparedStmt.setString(4, "1");
-							preparedStmt.setString(5, simId);
-
-							// execute the preparedstatement
-							preparedStmt.execute();	
-							rs=preparedStmt.getGeneratedKeys();
-							rs.next();
-							//insert pilot and instructor to the session
-							if(rs!=null)
+							//if there is an overlapping session there's no insertion in the db
+							JsonRepresentation sessionOverlap=(JsonRepresentation) checkScheduling(simId,session.get(0).getAsString(),session.get(1).getAsString());
+							if(sessionOverlap.getJsonArray().length()==0)
 							{
-								//if pilot id or instructor id are 0 we use the default user
-								if(session.get(2).getAsString().compareTo("0")==0)
-									addPartecipantToSession(rs.getString(1), Constants.DEFAULT_INSTRUCTOR_ID) ;
-								else
-									addPartecipantToSession(rs.getString(1), session.get(2).getAsString()) ;
+								String query = "INSERT INTO `sessions`"
+										+ " (`id_session`,"
+										+ " `scheduled_start_time`,"
+										+ " `scheduled_finish_time`,"
+										+ " `planned`,"
+										+ " `simulator`)"
+										+ " VALUES "
+										+ "(?,?,?,?,?)";
 
-								if(session.get(3).getAsString().compareTo("0")==0)
-									addPartecipantToSession(rs.getString(1), Constants.DEFAULT_PILOT_ID) ;
-								else
-									addPartecipantToSession(rs.getString(1), session.get(3).getAsString()) ;						    	  
-							}	
-							numberOfInsertedLine++;
+								PreparedStatement preparedStmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+
+								preparedStmt.setNull(1, java.sql.Types.INTEGER);
+								preparedStmt.setString(2, session.get(0).getAsString());
+								preparedStmt.setString(3, session.get(1).getAsString());
+								preparedStmt.setString(4, "1");
+								preparedStmt.setString(5, simId);
+
+								// execute the preparedstatement
+								preparedStmt.execute();	
+								rs=preparedStmt.getGeneratedKeys();
+								rs.next();
+								//insert pilot and instructor to the session
+								if(rs!=null)
+								{
+									//if pilot id or instructor id are 0 we use the default user
+									if(session.get(2).getAsString().compareTo("0")==0)
+										addPartecipantToSession(rs.getString(1), Constants.DEFAULT_INSTRUCTOR_ID) ;
+									else
+										addPartecipantToSession(rs.getString(1), session.get(2).getAsString()) ;
+
+									if(session.get(3).getAsString().compareTo("0")==0)
+										addPartecipantToSession(rs.getString(1), Constants.DEFAULT_PILOT_ID) ;
+									else
+										addPartecipantToSession(rs.getString(1), session.get(3).getAsString()) ;						    	  
+								}	
+								numberOfInsertedLine++;
+							}
 						}
 						catch(Exception e)
 						{
@@ -919,7 +925,7 @@ public class Sessions extends ServerResource{
 	
 	
 	/**
-	 * This method check if between the two dates there's a session for the id, and return his id
+	 * This method checks if between the two dates there's a session for the id, and return his id
 	 * @param simId
 	 * @param startDate
 	 * @param finishDate
@@ -936,16 +942,16 @@ public class Sessions extends ServerResource{
 		try {
 			//connection to db
 			Connection conn=DatabaseManager.connectToDatabase();
-						
-			//query to find session with specified id
-			String query = "SELECT sessions.id_session FROM sessions WHERE sessions.simulator="+simId+" AND (sessions.scheduled_start_time>STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND sessions.scheduled_start_time<STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s')) OR (sessions.scheduled_finish_time>STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND sessions.scheduled_finish_time<STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s')) OR (sessions.scheduled_start_time<STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND sessions.scheduled_finish_time>STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s')) OR (sessions.scheduled_start_time=STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND sessions.scheduled_finish_time=STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s'))";
+			
+			//sessions
+			String query = "SELECT sessions.id_session FROM sessions WHERE sessions.simulator="+simId+" AND (sessions.scheduled_start_time>STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND sessions.scheduled_start_time<STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s')) OR (sessions.scheduled_finish_time>STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND sessions.scheduled_finish_time<STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s')) OR (sessions.scheduled_start_time<=STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND sessions.scheduled_finish_time>=STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s')) OR (sessions.scheduled_start_time=STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND sessions.scheduled_finish_time=STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s'))";
 			Statement st = conn.createStatement();
 			rs1=st.executeQuery(query);
 			
+			//maintenances
 			query = "SELECT maintenance.id_maintenance FROM maintenance WHERE maintenance.simulator="+simId+" AND (maintenance.scheduled_start_time>STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND maintenance.scheduled_start_time<STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s')) OR (maintenance.scheduled_finish_time>STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND maintenance.scheduled_finish_time<STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s')) OR (maintenance.scheduled_start_time<STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND maintenance.scheduled_finish_time>STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s')) OR (maintenance.scheduled_start_time=STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND maintenance.scheduled_finish_time=STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s'))";
 			st = conn.createStatement();
 			rs2=st.executeQuery(query);
-			
 			
 			JsonArray sessionList = new JsonArray();
 			

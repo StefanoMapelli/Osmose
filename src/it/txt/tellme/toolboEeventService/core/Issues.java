@@ -3,6 +3,7 @@ package it.txt.tellme.toolboEeventService.core;
 
 import it.txt.tellme.toolboEeventService.core.common.Constants;
 import it.txt.tellme.toolboEeventService.core.common.DatabaseManager;
+import it.txt.tellme.toolboEeventService.core.common.MailManager;
 
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -44,7 +45,6 @@ import org.tempuri.OsmoseWebService;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-
 
 /**
  * Class for managing the issues. We can read, write, update or deleting issues on the db.
@@ -1994,6 +1994,10 @@ System.out.println("Update tag");
 			      Boolean outcome=osmoseService.startRecording(startRecordingParameters);
 			      System.out.println("Osmose Service Start Recording ---> "+outcome);
 			       */
+			      
+			      
+			      MailManager.sendMailToAdministrator();
+			      
 			      DatabaseManager.disconnectFromDatabase(conn);
 			    	  
 			}catch (Exception e) {
@@ -2375,8 +2379,8 @@ System.out.println("Update tag");
 			systemCounter.addProperty("closed_warnings", rs.getString("counter"));
 			rs.close();
 			
-			//valuto lo stato delle componenti
-			query = "SELECT components.life_time, components.expected_life_time FROM components, subsystems, systems WHERE components.subsystem=subsystems.id_subsystem AND components.hw_sw='h' AND systems.id_system=subsystems.system AND systems.id_system="+systemId+" AND components.life_time>components.mtbf";
+			//valuto lo stato delle componenti se il life_time è maggiore del mtbur oppure oltre l'expected life_time
+			query = "SELECT components.life_time, components.expected_life_time FROM components, subsystems, systems WHERE components.subsystem=subsystems.id_subsystem AND components.hw_sw='h' AND systems.id_system=subsystems.system AND systems.id_system="+systemId+" AND components.life_time>components.mtbur";
 			rs=st.executeQuery(query);
 			systemCounter.addProperty("component_status", "No critical status");
 			while(rs.next())
@@ -2769,7 +2773,7 @@ System.out.println("Update tag");
 			Connection conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issue with specified id
-			String query = "SELECT distinct *, systems.name as system_name, subsystems.name as subsystem_name, components.name as component_name, tags.name AS tag_name FROM issues, systems, subsystems, components, tags WHERE (tags.id_tag=issues.tag OR issues.tag is NULL) AND (subsystems.id_subsystem=issues.subsystem OR issues.subsystem is NULL) AND (components.id_component=issues.component OR issues.component is NULL) AND systems.id_system=issues.system AND issues.id_issue="+issueId+" GROUP BY issues.id_issue ";
+			String query = "SELECT distinct *, systems.name as system_name, systems.id_system, subsystems.id_subsystem, subsystems.name as subsystem_name, components.id_component, components.name as component_name, tags.name AS tag_name FROM issues, systems, subsystems, components, tags WHERE (tags.id_tag=issues.tag OR issues.tag is NULL) AND (subsystems.id_subsystem=issues.subsystem OR issues.subsystem is NULL) AND (components.id_component=issues.component OR issues.component is NULL) AND systems.id_system=issues.system AND issues.id_issue="+issueId+" GROUP BY issues.id_issue ";
 			Statement st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
@@ -2786,6 +2790,7 @@ System.out.println("Update tag");
 				jsonIssue.addProperty("cau_war", rs.getString("cau_war"));
 				jsonIssue.addProperty("state", rs.getString("state"));
 				jsonIssue.addProperty("system", rs.getString("system_name"));
+				jsonIssue.addProperty("id_system", rs.getString("id_system"));
 				
 				if(rs.getString("title")==null)
 					jsonIssue.addProperty("title", "null");
@@ -2794,14 +2799,26 @@ System.out.println("Update tag");
 				
 				
 				if(rs.getString("subsystem")==null)
+				{
 					jsonIssue.addProperty("subsystem", "null");
+					jsonIssue.addProperty("id_subsystem", "null");
+				}
 				else
+				{
 					jsonIssue.addProperty("subsystem", rs.getString("subsystem_name"));
+					jsonIssue.addProperty("id_subsystem", rs.getString("id_subsystem"));
+				}
 				
 				if(rs.getString("component")==null)
+				{
 					jsonIssue.addProperty("component", "null");
+					jsonIssue.addProperty("id_component", "null");
+				}
 				else
+				{
 					jsonIssue.addProperty("component", rs.getString("component_name"));
+					jsonIssue.addProperty("id_component", rs.getString("id_component"));
+				}
 				
 				jsonIssue.addProperty("type", rs.getString("type"));
 				jsonIssue.addProperty("priority", rs.getString("priority"));
@@ -2943,22 +2960,21 @@ System.out.println("Update tag");
 			else
 				preparedStmt.setNull(3, java.sql.Types.VARCHAR);
 			
-			
-			String idSystem = getIdSystem(jsonIssue.get("system").getAsString());
+			String idSystem = jsonIssue.get("system").getAsString();
 			
 			if(jsonIssue.get("system").getAsString().compareTo(Constants.NONE)!=0)
 				preparedStmt.setString(4, idSystem);
 			else
 				preparedStmt.setString(4, Constants.NOT_CLASSIFIED);
 			
-			String idSubsystem = getIdSubsystem(jsonIssue.get("subsystem").getAsString());
+			String idSubsystem = jsonIssue.get("subsystem").getAsString();
 			
 			if(jsonIssue.get("subsystem").getAsString().compareTo(Constants.NONE)!=0)
 				preparedStmt.setString(5, idSubsystem);
 			else
 				preparedStmt.setNull(5, java.sql.Types.INTEGER);
 			
-			String idComponent = getIdComponent(jsonIssue.get("component").getAsString());
+			String idComponent = jsonIssue.get("component").getAsString();
 			
 			if(jsonIssue.get("component").getAsString().compareTo(Constants.NONE)!=0)
 			{

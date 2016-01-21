@@ -79,12 +79,28 @@ public class Types extends ServerResource{
 				repReturn=getSubsystemObjects(systemName, simId);
 				System.out.println("Get subsystem objects");
 			} 
+			else if(queryMap.get(Constants.TYPE_OPERATION).compareTo(Constants.GET_SUBSYSTEMSV2)==0)
+			{
+				//get all system objects
+				String sysId=queryMap.get(Constants.SYSTEM_ID);
+				String simId=queryMap.get(Constants.SIMULATOR_ID);
+				repReturn=getSubsystemObjectsv2(sysId, simId);
+				System.out.println("Get subsystem objectsv2");
+			} 
 			else if(queryMap.get(Constants.TYPE_OPERATION).compareTo(Constants.GET_COMPONENTS)==0)
 			{
 				//get all system objects
 				String subsystemName=queryMap.get(Constants.SUBSYSTEM_NAME);
 				String simId=queryMap.get(Constants.SIMULATOR_ID);
 				repReturn=getComponentObjects(subsystemName, simId);
+				System.out.println("Get component objects");
+			}
+			else if(queryMap.get(Constants.TYPE_OPERATION).compareTo(Constants.GET_COMPONENTSV2)==0)
+			{
+				//get all system objects
+				String subsystemId=queryMap.get(Constants.SUBSYSTEM_ID);
+				String simId=queryMap.get(Constants.SIMULATOR_ID);
+				repReturn=getComponentObjectsv2(subsystemId, simId);
 				System.out.println("Get component objects");
 			}
 		}
@@ -95,9 +111,7 @@ public class Types extends ServerResource{
 		
 		return repReturn;
 	}
-	
-	
-	
+
 	/**
 	 * POST method
 	 */
@@ -232,6 +246,47 @@ public class Types extends ServerResource{
 		}
 		return repReturn;
 	}
+	
+	
+	/**
+	 * This method gets all the components of a simulator subsystem
+	 * @param subsystemId
+	 * @param simId
+	 * @return
+	 */
+	private Representation getComponentObjectsv2(String subsystemId,
+			String simId) {
+		ResultSet rs = null;
+		Representation repReturn = null;
+
+		try {	
+			//connection to db
+			Connection conn=DatabaseManager.connectToDatabase();
+						
+			String query = "SELECT components.name, components.id_component FROM subsystems, components WHERE components.simulator="+simId+" AND (components.component_state='Broken' OR components.component_state='Installed') AND subsystems.id_subsystem=components.subsystem AND subsystems.id_subsystem='"+subsystemId+"'";
+			Statement st = conn.createStatement();
+			rs=st.executeQuery(query);
+			
+			// Iterate through the data in the result set and display it.
+			JsonArray componentList = new JsonArray();
+			while (rs.next()) {
+				JsonObject jsonComponent = new JsonObject();
+				jsonComponent.addProperty("component", rs.getString("name"));
+				jsonComponent.addProperty("id_component", rs.getString("id_component"));
+				componentList.add(jsonComponent);				
+			}
+			repReturn = new JsonRepresentation(componentList.toString());
+			DatabaseManager.disconnectFromDatabase(conn);
+			
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (rs != null) try { rs.close(); } catch(Exception e) {}
+		}
+		return repReturn;
+	}
 
 
 	/**
@@ -248,7 +303,7 @@ public class Types extends ServerResource{
 			//connection to db
 			Connection conn=DatabaseManager.connectToDatabase();
 						
-			String query = "SELECT components.name FROM subsystems, components WHERE components.simulator="+simId+" AND (components.component_state='Broken' OR components.component_state='Installed') AND subsystems.id_subsystem=components.subsystem AND subsystems.name='"+subsystemName+"'";
+			String query = "SELECT components.name, components.id_component FROM subsystems, components WHERE components.simulator="+simId+" AND (components.component_state='Broken' OR components.component_state='Installed') AND subsystems.id_subsystem=components.subsystem AND subsystems.name='"+subsystemName+"'";
 			Statement st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
@@ -257,9 +312,52 @@ public class Types extends ServerResource{
 			while (rs.next()) {
 				JsonObject jsonComponent = new JsonObject();
 				jsonComponent.addProperty("component", rs.getString("name"));
+				jsonComponent.addProperty("id_component", rs.getString("id_component"));
 				componentList.add(jsonComponent);				
 			}
 			repReturn = new JsonRepresentation(componentList.toString());
+			DatabaseManager.disconnectFromDatabase(conn);
+			
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (rs != null) try { rs.close(); } catch(Exception e) {}
+		}
+		return repReturn;
+	}
+	
+	
+	/**
+	 * This method returns all the tuples of the table subsystems with specified system
+	 * @return json
+	 */
+	private Representation getSubsystemObjectsv2(String systemId, String simId) {
+		
+		ResultSet rs = null;
+		Representation repReturn = null;
+
+		try {	
+			//connection to db
+			Connection conn=DatabaseManager.connectToDatabase();
+						
+			//query to find issue with specified id
+			String query = "SELECT subsystems.name, subsystems.id_subsystem FROM components, subsystems, systems WHERE components.subsystem=subsystems.id_subsystem AND components.simulator="+simId+" AND subsystems.system=systems.id_system AND systems.id_system="+systemId+" GROUP BY subsystems.name";
+			Statement st = conn.createStatement();
+			rs=st.executeQuery(query);
+			
+			// Iterate through the data in the result set and display it.
+			JsonArray subsystemList = new JsonArray();
+			while (rs.next()) {
+				System.out.println("++++++++"+rs.getString("name"));
+				System.out.println("--------"+rs.getString("id_subsystem"));
+				JsonObject jsonSubsystem = new JsonObject();
+				jsonSubsystem.addProperty("subsystem", rs.getString("name"));
+				jsonSubsystem.addProperty("id_subsystem", rs.getString("id_subsystem"));
+				subsystemList.add(jsonSubsystem);				
+			}
+			repReturn = new JsonRepresentation(subsystemList.toString());
 			DatabaseManager.disconnectFromDatabase(conn);
 			
 		}
@@ -287,7 +385,7 @@ public class Types extends ServerResource{
 			Connection conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issue with specified id
-			String query = "SELECT subsystems.name FROM components, subsystems, systems WHERE components.subsystem=subsystems.id_subsystem AND components.simulator="+simId+" AND subsystems.system=systems.id_system AND systems.name='"+systemName+"' GROUP BY subsystems.name";
+			String query = "SELECT subsystems.name, subsystems.id_subsystem FROM components, subsystems, systems WHERE components.subsystem=subsystems.id_subsystem AND components.simulator="+simId+" AND subsystems.system=systems.id_system AND systems.name='"+systemName+"' GROUP BY subsystems.name";
 			Statement st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
@@ -296,6 +394,7 @@ public class Types extends ServerResource{
 			while (rs.next()) {
 				JsonObject jsonSubsystem = new JsonObject();
 				jsonSubsystem.addProperty("subsystem", rs.getString("name"));
+				jsonSubsystem.addProperty("id_subsystem", rs.getString("id_subsystem"));
 				subsystemList.add(jsonSubsystem);				
 			}
 			repReturn = new JsonRepresentation(subsystemList.toString());
@@ -327,7 +426,7 @@ public class Types extends ServerResource{
 			Connection conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issue with specified id
-			String query = "SELECT systems.name FROM systems, subsystems, components WHERE systems.id_system=subsystems.system AND subsystems.id_subsystem=components.subsystem AND components.simulator="+simId+" GROUP BY systems.name";
+			String query = "SELECT systems.name, systems.id_system FROM systems, subsystems, components WHERE systems.id_system=subsystems.system AND subsystems.id_subsystem=components.subsystem AND components.simulator="+simId+" GROUP BY systems.name";
 			Statement st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
@@ -336,6 +435,7 @@ public class Types extends ServerResource{
 			while (rs.next()) {
 				JsonObject jsonIssue = new JsonObject();
 				jsonIssue.addProperty("system", rs.getString("name"));
+				jsonIssue.addProperty("id_system", rs.getString("id_system"));
 				issuesList.add(jsonIssue);				
 			}
 			repReturn = new JsonRepresentation(issuesList.toString());

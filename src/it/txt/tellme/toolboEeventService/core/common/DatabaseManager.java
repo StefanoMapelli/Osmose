@@ -12,7 +12,7 @@ import java.sql.*;
 
 public class DatabaseManager {
 	
-	private static boolean threadStarted=false;;
+	private static boolean threadStarted=false;
 	
 	
 	/**

@@ -90,6 +90,11 @@ public class Constants {
 		public static final String NUMBERS_ISSUES_OF_SIMULATORS = "numberOfIssuesOfSimulator";
 		public static final String TAG = "tag";
 		public static final String INSERT_SCHEDULING_WITH_EXCEL = "insertSchedulingWithExcel";
+		public static final String REPLACE_COMPONENT = "replaceComponent";
+		public static final String GET_SUBSYSTEMSV2 = "getSubsystemsv2";
+		public static final String CREATE_COMPONENT = "createComponent";
+		public static final String GET_COMPONENTSV2 = "getComponentsv2";
+		public static final String SUBSYSTEM_ID = "subsystemId";
 		
 		
 		
