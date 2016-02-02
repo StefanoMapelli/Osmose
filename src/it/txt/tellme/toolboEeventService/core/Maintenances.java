@@ -108,15 +108,17 @@ public class Maintenances extends ServerResource{
 		
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn=null;
+		Statement st=null;
 		// Declare the JDBC objects.
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find maintenance of the specified simulator
 			String query = "SELECT * FROM maintenance, components WHERE maintenance.simulator="+simId+" AND components.id_component="+compId+" AND  components.id_component=maintenance.component AND DATE(maintenance.scheduled_start_time)>=DATE('"+startDate+"') AND DATE(maintenance.scheduled_finish_time)<=DATE('"+finishDate+"') ORDER BY maintenance.scheduled_start_time ";
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			// Iterate through the data in the result set and display it.
@@ -134,12 +136,19 @@ public class Maintenances extends ServerResource{
 				sessionList.add(jsonSession);				
 			}
 			repReturn = new JsonRepresentation(sessionList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -156,15 +165,17 @@ public class Maintenances extends ServerResource{
 		
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn=null;
+		Statement st=null;
 		// Declare the JDBC objects.
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find maintenance of the specified simulator
 			String query = "SELECT * FROM maintenance, components WHERE maintenance.simulator="+simId+" AND components.id_component=maintenance.component AND DATE(maintenance.scheduled_start_time)>=DATE('"+startDate+"') AND DATE(maintenance.scheduled_finish_time)<=DATE('"+finishDate+"') ORDER BY maintenance.scheduled_start_time ";
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			// Iterate through the data in the result set and display it.
@@ -182,12 +193,19 @@ public class Maintenances extends ServerResource{
 				sessionList.add(jsonSession);				
 			}
 			repReturn = new JsonRepresentation(sessionList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 		
@@ -203,15 +221,17 @@ public class Maintenances extends ServerResource{
 		
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn=null;
+		Statement st=null;
 		// Declare the JDBC objects.
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find maintenance of the specified simulator
 			String query = "SELECT * FROM maintenance, components, simulators WHERE simulators.id_simulator=maintenance.simulator AND components.id_component=maintenance.component AND maintenance.id_maintenance="+maintenanceId;
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			// Iterate through the data in the result set and display it.
@@ -230,12 +250,19 @@ public class Maintenances extends ServerResource{
 				sessionList.add(jsonSession);				
 			}
 			repReturn = new JsonRepresentation(sessionList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 		
@@ -254,6 +281,7 @@ public class Maintenances extends ServerResource{
 		// Declare the JDBC objects.
 		Connection conn = null;
 		ResultSet rs = null;
+		PreparedStatement preparedStmt=null;
 		if (entity != null ) {
 			try {
 				JsonParser jsonParser = new JsonParser();
@@ -274,7 +302,7 @@ public class Maintenances extends ServerResource{
 			      		+ "(?,?,?,?,?,?,?)";
 			 
 			      // create the mysql insert preparedstatement
-			      PreparedStatement preparedStmt = conn.prepareStatement(query);
+			      preparedStmt = conn.prepareStatement(query);
 			      
 			      preparedStmt.setNull(1, java.sql.Types.INTEGER);
 			      preparedStmt.setString(2, jsonSession.get("scheduled_start_time").getAsString());
@@ -288,8 +316,6 @@ public class Maintenances extends ServerResource{
 			      preparedStmt.execute();	
 			      
 			      System.out.println("Maintenance inserted");
-			     			    
-			      DatabaseManager.disconnectFromDatabase(conn);
 			    	  
 			}catch (Exception e) {
 				
@@ -298,7 +324,15 @@ public class Maintenances extends ServerResource{
 				repReturn = new StringRepresentation(e.getMessage());
 			}
 			finally {
-				if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+				try {
+					if(rs!=null)
+						rs.close();
+					if(preparedStmt!=null)
+						preparedStmt.close();
+					DatabaseManager.disconnectFromDatabase(conn);
+				} 
+				catch(Exception e)
+				{e.printStackTrace();}
 			}
 		}
 		return repReturn;

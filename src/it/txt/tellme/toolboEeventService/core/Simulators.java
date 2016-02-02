@@ -78,15 +78,17 @@ public class Simulators extends ServerResource{
 		
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn=null;
+		Statement st=null;
 		// Declare the JDBC objects.
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find data of simulators
 			String query = "SELECT * FROM simulators";
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			// Iterate through the data in the result set and display it.
@@ -98,13 +100,20 @@ public class Simulators extends ServerResource{
 				simulatorList.add(jsonSimulator);				
 			}
 			repReturn = new JsonRepresentation(simulatorList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 			
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		
 		return repReturn;
@@ -122,15 +131,17 @@ public class Simulators extends ServerResource{
 	{
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn=null;
+		Statement st=null;
 		// Declare the JDBC objects.
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find data of the specified simulator
 			String query = "SELECT * FROM simulators WHERE id_simulator="+simId;
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			// Iterate through the data in the result set and display it.
@@ -142,13 +153,20 @@ public class Simulators extends ServerResource{
 				simulatorList.add(jsonSimulator);				
 			}
 			repReturn = new JsonRepresentation(simulatorList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 			
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		
 		return repReturn;
@@ -168,15 +186,18 @@ public class Simulators extends ServerResource{
 	{
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn=null;
+		Statement st=null;
+		
 		// Declare the JDBC objects.
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find data of the components of the simulator
 			String query = "SELECT systems.name as system_name, systems.id_system, subsystems.id_subsystem, subsystems.name as subsystem_name, components.name, components.id_component, components.component_state, components.life_time, components.mtbf, components.hw_sw FROM systems, subsystems, components WHERE systems.id_system=subsystems.system AND subsystems.id_subsystem=components.subsystem AND (components.component_state='Installed' OR components.component_state='Broken') AND components.simulator="+simId;
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			// Iterate through the data in the result set and display it.
@@ -208,13 +229,20 @@ public class Simulators extends ServerResource{
 				componentsList.add(jsonComponent);
 			}
 			repReturn = new JsonRepresentation(componentsList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 			
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		
 		return repReturn;
@@ -230,16 +258,18 @@ public class Simulators extends ServerResource{
 		
 		ResultSet rs = null;
 		String outcome="none";
+		Statement st=null;
+		Connection conn=null;
 		// Declare the JDBC objects.
 		
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issues of the component of the simulator
 			String query = "SELECT issues.cau_war FROM issues WHERE (issues.state='open' OR issues.state='described') AND issues.component="+idComponent;
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			// Iterate through the data in the result set and display it.
@@ -250,17 +280,28 @@ public class Simulators extends ServerResource{
 				}
 				else
 				{
+					if(rs!=null)
+						rs.close();
+					if(st!=null)
+						st.close();
+					DatabaseManager.disconnectFromDatabase(conn);
 					return "w";
 				}
 			}
-			
-			DatabaseManager.disconnectFromDatabase(conn);
 			
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		
 		return outcome;

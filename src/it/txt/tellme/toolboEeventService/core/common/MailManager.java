@@ -90,12 +90,12 @@ public class MailManager {
 					
 					htmlMail=
 							"<h3>FS-HUMS REPORT: Issue Raised</h3>"
-							+ "<p>"
-							+ "Datetime: "+ dateTime
-							+ "</br>Type: "+ cau_war
-							+ "</br>Hardware / Software: "+ hw_sw
-							+ "</br>Simulator: "+ simulatorModel
-							+ "</p>"
+							+ "<table style='width:60%'>"
+							+ "<tr><td>Simulator:</td><td>"+simulatorModel+"</td></tr>"
+							+ "<tr><td>Datetime:</td><td>"+dateTime+"</td></tr>"
+							+ "<tr><td>Type:</td><td>"+cau_war+"</td></tr>"
+							+ "<tr><td>Hardware / Software:</td><td>"+hw_sw+"</td></tr>"
+							+ "</table>"
 							+ "<p>For further information about the issue login to FS-HUMS</p>"
 							+ "<p></br>*** This is an automatically generated email, please do not reply ***</p>"
 							+ "<p>You received this email because you are in the list of recipients for the issues reporting."
@@ -144,15 +144,16 @@ public class MailManager {
             mailUsername = jsonObject.get("mail-username").getAsString();
             mailPassword=jsonObject.get("mail-password").getAsString();
             
+            System.out.println("\n____________________________________");
             System.out.println("Server SMTP Settings");
-            System.out.println("\n+ mail-smtp-host: "+ mailSmtpHost);
-            System.out.println("+ mail-smtp-socketFactory-port: "+ mailSmtpSocketFactoryPort);
-            System.out.println("+ mail-smtp-socketFactory-class: "+ mailSmtpSocketFactoryClass);
-            System.out.println("+ mail-smtp-auth: "+ mailSmtpAuth);
-            System.out.println("+ mail-smtp-port: "+ mailSmtpPort);
-            System.out.println("+ mail-sender-address: "+ mailSenderAddress);
-            System.out.println("+ mail-username: "+ mailUsername);
-            System.out.println("+ mail-password: *********");
+            System.out.println("\n+  mail-smtp-host: "+ mailSmtpHost);
+            System.out.println("+  mail-smtp-socketFactory-port: "+ mailSmtpSocketFactoryPort);
+            System.out.println("+  mail-smtp-socketFactory-class: "+ mailSmtpSocketFactoryClass);
+            System.out.println("+  mail-smtp-auth: "+ mailSmtpAuth);
+            System.out.println("+  mail-smtp-port: "+ mailSmtpPort);
+            System.out.println("+  mail-sender-address: "+ mailSenderAddress);
+            System.out.println("+  mail-username: "+ mailUsername);
+            System.out.println("+  mail-password: *********");
             
             
             JsonArray jsonArrayMailTo = (JsonArray) jsonObject.get("mail-to");
@@ -170,6 +171,8 @@ public class MailManager {
             	mailTo.add(address);
             }
  
+            System.out.println("____________________________________\n");
+            
             return true;
             
         } catch (Exception e) {

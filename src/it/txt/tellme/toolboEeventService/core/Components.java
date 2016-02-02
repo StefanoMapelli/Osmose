@@ -93,12 +93,14 @@ public class Components extends ServerResource{
 		
 		Representation repReturn = null;
 		JsonParser jsonParser = new JsonParser();
+		PreparedStatement preparedStmtInsert=null;
+		Connection conn = null;
 		try 
 		{
 			JsonObject jsonSession = jsonParser.parse(entity.getText()).getAsJsonObject();
 			try {
 				//connection to db
-				Connection conn=DatabaseManager.connectToDatabase();
+				conn=DatabaseManager.connectToDatabase();
 				//get the lifetime			
 				String query = "INSERT INTO `components`"
 			      		+ " (`name`,"
@@ -121,7 +123,7 @@ public class Components extends ServerResource{
 			      		+ "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 			 
 			    // create the mysql insert preparedstatement
-			    PreparedStatement preparedStmtInsert = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+			    preparedStmtInsert = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
 			      
 			    preparedStmtInsert.setString(1,jsonSession.get("name").getAsString());
 			    preparedStmtInsert.setString(2,jsonSession.get("description").getAsString());
@@ -140,11 +142,14 @@ public class Components extends ServerResource{
 			    preparedStmtInsert.setString(15,jsonSession.get("manufacturer").getAsString());
 			    preparedStmtInsert.setString(16,"Installed");
 			    preparedStmtInsert.execute();
-			    
-			    preparedStmtInsert.close();
-				DatabaseManager.disconnectFromDatabase(conn);
 			}catch (Exception e) {
 				e.printStackTrace();
+			}
+			finally
+			{
+				if(preparedStmtInsert!=null)
+					preparedStmtInsert.close();
+				DatabaseManager.disconnectFromDatabase(conn);
 			}
 		} 
 		catch (Exception e) 
@@ -165,7 +170,10 @@ public class Components extends ServerResource{
 
 		Representation repReturn = null;
 		ResultSet rs=null, avgRs = null;
+		PreparedStatement preparedStmtInsert=null;
 		String componentId;
+		Connection  conn=null;
+		PreparedStatement preparedStmt=null;
 		JsonParser jsonParser = new JsonParser();
 		try 
 		{
@@ -173,7 +181,7 @@ public class Components extends ServerResource{
 			componentId=jsonSession.get("componentId").getAsString();
 			try {
 				//connection to db
-				Connection conn=DatabaseManager.connectToDatabase();
+				conn=DatabaseManager.connectToDatabase();
 				//get the lifetime			
 				String query="SELECT components.id_component, subsystems.system, components.subsystem, components.life_time FROM components, subsystems WHERE subsystems.id_subsystem=components.subsystem AND components.id_component="+componentId;
 				Statement st = conn.createStatement();
@@ -190,7 +198,7 @@ public class Components extends ServerResource{
 			      		+ "(?,?,?)";
 			 
 			    // create the mysql insert preparedstatement
-			    PreparedStatement preparedStmtInsert = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+			    preparedStmtInsert = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
 			      
 			    preparedStmtInsert.setString(1,componentId);
 			    preparedStmtInsert.setString(2,jsonSession.get("installationDate").getAsString());
@@ -207,7 +215,7 @@ public class Components extends ServerResource{
 				//update the component fields
 				query="UPDATE components SET serial_number=?, part_number=?, life_time=?, expected_life_time=?, manufacturer=?, manufacturer_mtbf=?, manufacturer_mtbr=?, installation_date=?, mtbur=? WHERE id_component = "+componentId;
 				
-				PreparedStatement preparedStmt = conn.prepareStatement(query);
+				preparedStmt = conn.prepareStatement(query);
 				
 				preparedStmt.setString(1, jsonSession.get("serialNumber").getAsString());
 				preparedStmt.setString(2, jsonSession.get("partNumber").getAsString());
@@ -219,7 +227,6 @@ public class Components extends ServerResource{
 				preparedStmt.setString(8, jsonSession.get("installationDate").getAsString());
 				preparedStmt.setFloat(9, mtbur);
 				preparedStmt.executeUpdate();
-				preparedStmt.close(); 
 
 				JsonObject component = new JsonObject();
 				component.addProperty("id_component", rs.getString("id_component"));
@@ -227,9 +234,21 @@ public class Components extends ServerResource{
 				component.addProperty("id_subsystem", rs.getString("subsystem"));
 				repReturn = new JsonRepresentation(component.toString());
 
-				DatabaseManager.disconnectFromDatabase(conn);
+				
 			}catch (Exception e) {
 				e.printStackTrace();
+			}
+			finally
+			{
+				if(rs!=null)
+					rs.close();
+				if(avgRs!=null)
+					avgRs.close();
+				if(preparedStmt!=null)
+					preparedStmt.close(); 
+				if(preparedStmtInsert!=null)
+					preparedStmtInsert.close();
+				DatabaseManager.disconnectFromDatabase(conn);
 			}
 		} 
 		catch (Exception e) 
@@ -251,14 +270,16 @@ public class Components extends ServerResource{
 		
 			ResultSet rs = null;
 			Representation repReturn = null;
+			Connection conn=null;
+			Statement st=null;
 
 			try {
 				
 				//connection to db
-				Connection conn=DatabaseManager.connectToDatabase();
+				conn=DatabaseManager.connectToDatabase();
 							
 				String query = "SELECT components.*, systems.id_system, subsystems.id_subsystem, systems.name as system_name, subsystems.name as subsystem_name FROM components, systems, subsystems WHERE components.simulator="+simId+" AND components.hw_sw='h' AND systems.id_system=subsystems.system AND components.subsystem=subsystems.id_subsystem AND components.life_time>components.mtbur";
-				Statement st = conn.createStatement();
+				st = conn.createStatement();
 				rs=st.executeQuery(query);				
 				
 				JsonArray alertsList = new JsonArray();
@@ -283,14 +304,21 @@ public class Components extends ServerResource{
 					alertsList.add(alertObject);				
 				}
 				repReturn = new JsonRepresentation(alertsList.toString());
-				DatabaseManager.disconnectFromDatabase(conn);
 				
 			}
 			catch (Exception e) {
 				e.printStackTrace();
 			}
 			finally {
-				if (rs != null) try { rs.close(); } catch(Exception e) {}
+				try {
+					if(rs!=null)
+						rs.close();
+					if(st!=null)
+						st.close();
+					DatabaseManager.disconnectFromDatabase(conn);
+				} 
+				catch(Exception e)
+				{e.printStackTrace();}
 			}
 			return repReturn;
 	}
@@ -304,14 +332,16 @@ public class Components extends ServerResource{
 			
 			ResultSet rs = null;
 			Representation repReturn = null;
+			Connection conn=null;
+			Statement st=null;
 
 			try {
 				
 				//connection to db
-				Connection conn=DatabaseManager.connectToDatabase();
+				conn=DatabaseManager.connectToDatabase();
 							
 				String query = "SELECT components.*, systems.name as system_name, subsystems.name as subsystem_name FROM components, systems, subsystems WHERE systems.id_system=subsystems.system AND components.subsystem=subsystems.id_subsystem AND components.id_component="+componentId;
-				Statement st = conn.createStatement();
+				st = conn.createStatement();
 				rs=st.executeQuery(query);				
 				
 				JsonArray componentsList = new JsonArray();
@@ -341,14 +371,22 @@ public class Components extends ServerResource{
 					componentsList.add(component);				
 				}
 				repReturn = new JsonRepresentation(componentsList.toString());
-				DatabaseManager.disconnectFromDatabase(conn);
+				
 				
 			}
 			catch (Exception e) {
 				e.printStackTrace();
 			}
 			finally {
-				if (rs != null) try { rs.close(); } catch(Exception e) {}
+				try {
+					if(rs!=null)
+						rs.close();
+					if(st!=null)
+						st.close();
+					DatabaseManager.disconnectFromDatabase(conn);
+				} 
+				catch(Exception e)
+				{e.printStackTrace();}
 			}
 			return repReturn;
 		}

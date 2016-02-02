@@ -97,6 +97,8 @@ public class Users extends ServerResource{
 		
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn=null;
+		Statement st=null;
 		// Declare the JDBC objects.
 
 		try {
@@ -106,10 +108,10 @@ public class Users extends ServerResource{
 			String username=jsonData.get("username").getAsString();
 			String password=jsonData.get("password").getAsString();
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 			
 			String query = "SELECT password FROM users WHERE users.username='"+username+"'";
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			if(rs.next())
 			{
@@ -136,7 +138,15 @@ public class Users extends ServerResource{
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 		
@@ -152,15 +162,17 @@ public class Users extends ServerResource{
 	
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn=null;
+		Statement st=null;
 		// Declare the JDBC objects.
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			
 			String query = "SELECT * FROM users WHERE users.role='"+role+"'";
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			// Iterate through the data in the result set and display it.
@@ -175,13 +187,20 @@ public class Users extends ServerResource{
 				userList.add(jsonUser);				
 			}
 			repReturn = new JsonRepresentation(userList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 			
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -196,15 +215,17 @@ public class Users extends ServerResource{
 		
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn=null;
+		Statement st=null;
 		// Declare the JDBC objects.
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find user with specified id
 			String query = "SELECT * FROM `users` WHERE users.id_user="+idUser;
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			// Iterate through the data in the result set and display it.
@@ -219,13 +240,20 @@ public class Users extends ServerResource{
 				userList.add(jsonUser);				
 			}
 			repReturn = new JsonRepresentation(userList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 			
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -241,15 +269,17 @@ public class Users extends ServerResource{
 		
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn=null;
+		Statement st=null;
 		// Declare the JDBC objects.
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find user with specified id
 			String query = "SELECT * FROM `users` WHERE users.username='"+username+"'";
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			// Iterate through the data in the result set and display it.
@@ -263,13 +293,20 @@ public class Users extends ServerResource{
 				jsonUser.addProperty("age", rs.getString("age"));				
 			}
 			repReturn = new JsonRepresentation(jsonUser.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 			
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}

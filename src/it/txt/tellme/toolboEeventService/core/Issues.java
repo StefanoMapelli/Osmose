@@ -386,11 +386,13 @@ public class Issues extends ServerResource{
 			String sysId, String type, String status, String sesId) {
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn=null;
+		Statement  st = null;
 		// Declare the JDBC objects.
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 			String query;
 			//query to find issues of the specified session
 			if(status.compareTo("closed")==0)
@@ -402,7 +404,7 @@ public class Issues extends ServerResource{
 				query = "SELECT issues.id_issue, issues.title, tags.name AS tag, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name FROM tags, issues, users, systems WHERE issues.session="+sesId+" AND tags.id_tag=issues.tag AND issues.state='"+status+"' AND issues.cau_war='"+type+"' AND users.id_user=issues.user_raiser AND systems.id_system=issues.system AND systems.id_system="+sysId;
 			}
 			
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			// Iterate through the data in the result set and display it.
@@ -423,12 +425,19 @@ public class Issues extends ServerResource{
 				issuesList.add(jsonIssue);				
 			}
 			repReturn = new JsonRepresentation(issuesList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -447,13 +456,15 @@ public class Issues extends ServerResource{
 		ResultSet rs = null;
 		ResultSet allSystemsRs = null;
 		Representation repReturn = null;
+		Connection conn =null;
+		Statement st=null;
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 			
 			String query="SELECT distinct systems.id_system, systems.name FROM systems, subsystems, components, simulators WHERE simulators.id_simulator="+simId+" AND components.simulator=simulators.id_simulator AND systems.id_system=subsystems.system AND subsystems.id_subsystem=components.subsystem";
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			allSystemsRs=st.executeQuery(query);
 			
 			ArrayList<ArrayList<String>> systems=new ArrayList<ArrayList<String>>();
@@ -492,12 +503,19 @@ public class Issues extends ServerResource{
 			}
 			
 			repReturn = new JsonRepresentation(systemList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -513,12 +531,14 @@ public class Issues extends ServerResource{
 			String sesId, String systemId) {
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn =null;
+		Statement st=null;
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 			JsonObject systemCounter = new JsonObject();
 			String query;
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			//numero di cautions aperte
 			query = "SELECT COUNT(*) AS counter FROM issues WHERE issues.session="+sesId+" AND issues.cau_war='c' AND issues.state='open' AND issues.system="+systemId;
 			rs=st.executeQuery(query);
@@ -542,15 +562,23 @@ public class Issues extends ServerResource{
 			rs=st.executeQuery(query);
 			rs.next();
 			systemCounter.addProperty("closed_warnings", rs.getString("counter"));
-			rs.close();
+			
 			
 			repReturn = new JsonRepresentation(systemCounter.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
+			
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -567,12 +595,14 @@ public class Issues extends ServerResource{
 		
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn =null;
+		Statement st=null;
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 			
 			String query;
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			query = "SELECT  systems.id_system, systems.name FROM systems WHERE systems.simulator="+simId+" AND systems.name='not_classified'";
 			rs=st.executeQuery(query);
 			rs.next();
@@ -590,12 +620,19 @@ public class Issues extends ServerResource{
 			}
 						
 			repReturn = new JsonRepresentation(systemCounter.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -604,15 +641,17 @@ public class Issues extends ServerResource{
 	private Representation getNewDescribedIssuesForCurrentSession(String sesId) {
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn =null;
+		Statement st=null;
 		// Declare the JDBC objects.
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issues of the specified session
 			String query = "SELECT issues.id_issue, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state FROM issues, sessions WHERE sessions.id_session=issues.session AND (issues.state='new' OR issues.state='described') AND sessions.id_session="+sesId+" ORDER BY issues.raise_time DESC";
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			JsonArray issuesList = new JsonArray();
@@ -626,14 +665,20 @@ public class Issues extends ServerResource{
 				
 				issuesList.add(jsonIssue);				
 			}
-			repReturn = new JsonRepresentation(issuesList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
-			
+			repReturn = new JsonRepresentation(issuesList.toString());			
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -651,12 +696,14 @@ public class Issues extends ServerResource{
 	private Representation getCounterOfIssuesOfSimulatorTagged(String simId) {
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn =null;
+		Statement st=null;
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 			//total
 			String query ="SELECT issues.tag, COUNT(issues.id_issue) AS counter FROM issues, sessions WHERE (issues.state='open' OR issues.state='rejected' OR issues.state='fixed') AND sessions.id_session=issues.session AND sessions.simulator="+simId+" GROUP BY issues.tag"; 
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			JsonObject counters = new JsonObject();
 			int total=0;
@@ -774,15 +821,21 @@ public class Issues extends ServerResource{
 				}
 			}
 			counters.addProperty("number_fixed_issue", fixIssue);
-			rs.close();
 						
 			repReturn = new JsonRepresentation(counters.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 		
@@ -798,15 +851,17 @@ public class Issues extends ServerResource{
 		ResultSet rs = null;
 		ResultSet allSystemsRs = null;
 		Representation repReturn = null;
+		Connection conn =null;
+		Statement st=null, st1=null;
 		// Declare the JDBC objects.
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			String query ="SELECT systems.* FROM systems WHERE systems.simulator="+simId; 
-			Statement st = conn.createStatement();
-			Statement st1 = conn.createStatement();
+			st = conn.createStatement();
+			st1 = conn.createStatement();
 			allSystemsRs=st1.executeQuery(query);
 			JsonArray counterList = new JsonArray();
 			while (allSystemsRs.next()) {
@@ -855,12 +910,25 @@ public class Issues extends ServerResource{
 				counterList.add(counter);
 			}
 			repReturn = new JsonRepresentation(counterList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+			try {
+				if(rs!=null)
+				{
+					rs.close();
+				}
+				if(allSystemsRs!=null)
+					allSystemsRs.close();
+				if(st!=null)
+					st.close();
+				if(st1!=null)
+					st1.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -877,14 +945,16 @@ public class Issues extends ServerResource{
 			String simId) {
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn =null;
+		Statement st=null;
 		// Declare the JDBC objects.
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			String query = "SELECT issues.tag, issues.hw_sw, issues.cau_war, COUNT(issues.id_issue) AS counter FROM issues, sessions WHERE issues.session=sessions.id_session AND sessions.simulator="+simId+" GROUP BY issues.cau_war, issues.hw_sw, issues.tag";
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			int hwC=0;
@@ -950,12 +1020,21 @@ public class Issues extends ServerResource{
 			counter.addProperty("number_sw_cau", swC);
 			counter.addProperty("number_sw_war", swW);
 			repReturn = new JsonRepresentation(counter.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+			try {
+				if(rs!=null)
+				{
+					rs.close();
+				}
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -977,14 +1056,16 @@ public class Issues extends ServerResource{
 		int fixedIssue=0;
 		int rejectedIssue=0;
 		JsonArray counterList = new JsonArray();
+		Statement st=null;
+		Connection conn=null;
 		// Declare the JDBC objects.
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			String query = "SELECT issues.tag, issues.state, COUNT(issues.id_issue) AS counter FROM issues, sessions WHERE issues.session=sessions.id_session AND sessions.simulator="+simId+" GROUP BY issues.state, issues.tag";
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			while(rs.next())
@@ -1071,12 +1152,21 @@ public class Issues extends ServerResource{
 			counterList.add(status);
 			
 			repReturn = new JsonRepresentation(counterList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+			try {
+				if(rs!=null)
+				{
+					rs.close();
+				}
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -1096,12 +1186,14 @@ public class Issues extends ServerResource{
 		
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Statement st=null;
+		Connection conn=null;
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 			//total
 			String query ="SELECT COUNT(issues.id_issue) AS counter FROM issues, sessions WHERE (issues.state='open' OR issues.state='rejected' OR issues.state='fixed') AND sessions.id_session=issues.session AND sessions.simulator="+simId; 
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			JsonObject counters = new JsonObject();
 			counters.addProperty("number_total_issue", 0);
@@ -1159,15 +1251,21 @@ public class Issues extends ServerResource{
 			if (rs.next()) {
 				counters.addProperty("number_fixed_issue", rs.getInt("counter"));
 			}
-			rs.close();
 						
 			repReturn = new JsonRepresentation(counters.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 		
@@ -1184,15 +1282,18 @@ public class Issues extends ServerResource{
 		ResultSet rs = null;
 		ResultSet allSystemsRs = null;
 		Representation repReturn = null;
+		Statement st = null;
+		Statement st1 = null;
+		Connection conn=null;
 		// Declare the JDBC objects.
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			String query ="SELECT systems.* FROM systems WHERE systems.simulator="+simId; 
-			Statement st = conn.createStatement();
-			Statement st1 = conn.createStatement();
+			st = conn.createStatement();
+			st1 = conn.createStatement();
 			allSystemsRs=st1.executeQuery(query);
 			JsonArray counterList = new JsonArray();
 			while (allSystemsRs.next()) {
@@ -1222,12 +1323,23 @@ public class Issues extends ServerResource{
 				counterList.add(counter);
 			}
 			repReturn = new JsonRepresentation(counterList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+			try {
+				if(rs!=null)
+				{
+					rs.close();
+				}
+				if(st!=null)
+					st.close();
+				if(st1!=null)
+					st1.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 		
@@ -1244,14 +1356,16 @@ public class Issues extends ServerResource{
 		
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Statement st=null;
+		Connection conn=null;
 		// Declare the JDBC objects.
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			String query = "SELECT issues.hw_sw, issues.cau_war, COUNT(issues.id_issue) AS counter FROM issues, sessions WHERE issues.session=sessions.id_session AND sessions.simulator="+simId+" GROUP BY issues.cau_war, issues.hw_sw";
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			JsonObject counter = new JsonObject();
@@ -1280,12 +1394,19 @@ public class Issues extends ServerResource{
 				}				
 			}
 			repReturn = new JsonRepresentation(counter.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -1301,14 +1422,16 @@ public class Issues extends ServerResource{
 		
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Statement st=null;
+		Connection conn=null;
 		// Declare the JDBC objects.
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			String query = "SELECT issues.state, COUNT(issues.id_issue) AS counter FROM issues, sessions WHERE issues.session=sessions.id_session AND sessions.simulator="+simId+" GROUP BY issues.state";
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			JsonArray counterList = new JsonArray();
@@ -1319,12 +1442,21 @@ public class Issues extends ServerResource{
 				counterList.add(status);				
 			}
 			repReturn = new JsonRepresentation(counterList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+			try {
+				if(rs!=null)
+				{
+					rs.close();
+				}
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -1339,15 +1471,17 @@ public class Issues extends ServerResource{
 	private Representation getIssuesOfTheSystemId(String systemId) {
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Statement st=null;
+		Connection conn=null;
 		// Declare the JDBC objects.
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issues of the specified session
 			String query = "SELECT issues.id_issue, issues.title, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name, tags.name AS tag FROM issues, users, systems, tags WHERE tags.id_tag=issues.tag AND users.id_user=issues.user_raiser AND systems.id_system=issues.system AND systems.id_system="+systemId;
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			// Iterate through the data in the result set and display it.
@@ -1368,12 +1502,21 @@ public class Issues extends ServerResource{
 				issuesList.add(jsonIssue);				
 			}
 			repReturn = new JsonRepresentation(issuesList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+			try {
+				if(rs!=null)
+				{
+					rs.close();
+				}
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -1392,11 +1535,13 @@ public class Issues extends ServerResource{
 		
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Statement st=null;
+		Connection conn=null;
 		// Declare the JDBC objects.
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 			String query;
 			//query to find issues of the specified session
 			if(status.compareTo("closed")==0)
@@ -1408,7 +1553,7 @@ public class Issues extends ServerResource{
 				query = "SELECT issues.id_issue, issues.title, tags.name AS tag, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name FROM tags, issues, users, systems WHERE tags.id_tag=issues.tag AND issues.state='"+status+"' AND issues.cau_war='"+type+"' AND users.id_user=issues.user_raiser AND systems.id_system=issues.system AND systems.id_system="+sysId;
 			}
 			
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			// Iterate through the data in the result set and display it.
@@ -1429,12 +1574,21 @@ public class Issues extends ServerResource{
 				issuesList.add(jsonIssue);				
 			}
 			repReturn = new JsonRepresentation(issuesList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+			try {
+				if(rs!=null)
+				{
+					rs.close();
+				}
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 		
@@ -1454,7 +1608,8 @@ System.out.println("Update tag");
 		
 		Representation repReturn = null;
 		// Declare the JDBC objects.
-		Connection conn = null;
+		PreparedStatement preparedStmt=null;
+		Connection conn=null;
 		try{
 			JsonParser jsonParser = new JsonParser();
 			JsonObject jsonIssue = jsonParser.parse(entity.getText()).getAsJsonObject();
@@ -1465,20 +1620,25 @@ System.out.println("Update tag");
 			//update the state of the issue with open
 			String query="UPDATE `osmose`.`issues` SET tag = ? WHERE `issues`.`id_issue` = ?";
 		
-			PreparedStatement preparedStmt = conn.prepareStatement(query);
+			preparedStmt = conn.prepareStatement(query);
 			preparedStmt.setString(1, jsonIssue.get("tagId").getAsString());
 			preparedStmt.setString(2, jsonIssue.get("issueId").getAsString());
-			preparedStmt.executeUpdate();
-			preparedStmt.close(); 
-			
-			DatabaseManager.disconnectFromDatabase(conn);
-			
+			preparedStmt.executeUpdate();			
 		}
 		catch(Exception e)
 		{
 			e.printStackTrace();
 			setStatus(Status.SERVER_ERROR_INTERNAL);
 			repReturn = new StringRepresentation(e.getMessage());
+		}
+		finally {
+			try {
+				if(preparedStmt!=null)
+					preparedStmt.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -1496,6 +1656,7 @@ System.out.println("Update tag");
 		Representation repReturn = null;
 		// Declare the JDBC objects.
 		Connection conn = null;
+		PreparedStatement preparedStmt=null;
 		try{
 			JsonParser jsonParser = new JsonParser();
 			JsonObject jsonIssue = jsonParser.parse(entity.getText()).getAsJsonObject();
@@ -1504,11 +1665,12 @@ System.out.println("Update tag");
 			conn=DatabaseManager.connectToDatabase();
 			
 			//update the state of the issue with open
-			String query="UPDATE `osmose`.`issues` SET `state` = ? WHERE `issues`.`id_issue` = ?";
+			String query="UPDATE `osmose`.`issues` SET `state` = ?, fixed_date = ? WHERE `issues`.`id_issue` = ?";
 		
-			PreparedStatement preparedStmt = conn.prepareStatement(query);
+			preparedStmt = conn.prepareStatement(query);
 			preparedStmt.setString(1, Constants.STATE_FIXED);
-			preparedStmt.setString(2, jsonIssue.get("issueId").getAsString());
+			preparedStmt.setString(2, jsonIssue.get("fixingDate").getAsString());
+			preparedStmt.setString(3, jsonIssue.get("issueId").getAsString());
 			preparedStmt.executeUpdate();
 			preparedStmt.close(); 
 			
@@ -1534,16 +1696,21 @@ System.out.println("Update tag");
 				}
 			}
 
-			DatabaseManager.disconnectFromDatabase(conn);
-
-
-
 		}
 		catch(Exception e)
 		{
 			e.printStackTrace();
 			setStatus(Status.SERVER_ERROR_INTERNAL);
 			repReturn = new StringRepresentation(e.getMessage());
+		}
+		finally {
+			try {
+				if(preparedStmt!=null)
+					preparedStmt.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -1559,10 +1726,11 @@ System.out.println("Update tag");
 	private Representation rejectIssue(Representation entity) 
 	{
 		System.out.println("Reject issue");
-		
+		ResultSet rs = null;
 		Representation repReturn = null;
 		// Declare the JDBC objects.
 		Connection conn = null;
+		PreparedStatement preparedStmt=null;
 		try{
 			JsonParser jsonParser = new JsonParser();
 			JsonObject jsonIssue = jsonParser.parse(entity.getText()).getAsJsonObject();
@@ -1573,13 +1741,11 @@ System.out.println("Update tag");
 			//update the state of the issue with open
 			String query="UPDATE `osmose`.`issues` SET `state` = ? WHERE `issues`.`id_issue` = ?";
 		
-			PreparedStatement preparedStmt = conn.prepareStatement(query);
+			preparedStmt = conn.prepareStatement(query);
 			preparedStmt.setString(1, Constants.STATE_REJECTED);
 			preparedStmt.setString(2, jsonIssue.get("issueId").getAsString());
 			preparedStmt.executeUpdate();
 			preparedStmt.close(); 
-			
-			ResultSet rs = null;
 							
 			//query to find component of the issue with specified id
 			query = "SELECT component FROM issues WHERE issues.id_issue="+jsonIssue.get("issueId").getAsString();
@@ -1597,20 +1763,25 @@ System.out.println("Update tag");
 					preparedStmt.setString(1, "Installed");
 					preparedStmt.setString(2, componentId);
 					preparedStmt.executeUpdate();
-					preparedStmt.close(); 
 				}
 			}
-
-			DatabaseManager.disconnectFromDatabase(conn);
-
-
-
 		}
 		catch(Exception e)
 		{
 			e.printStackTrace();
 			setStatus(Status.SERVER_ERROR_INTERNAL);
 			repReturn = new StringRepresentation(e.getMessage());
+		}
+		finally {
+			try {
+				if(rs!=null)
+					rs.close();
+				if(preparedStmt!=null)
+					preparedStmt.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -1629,6 +1800,7 @@ System.out.println("Update tag");
 		Representation repReturn = null;
 		// Declare the JDBC objects.
 		Connection conn = null;
+		PreparedStatement preparedStmt=null;
 		try{
 			JsonParser jsonParser = new JsonParser();
 			JsonObject jsonIssue = jsonParser.parse(entity.getText()).getAsJsonObject();
@@ -1639,15 +1811,10 @@ System.out.println("Update tag");
 			//update the state of the issue with open
 			String query="UPDATE `osmose`.`issues` SET `state` = ? WHERE `issues`.`id_issue` = ?";
 		
-			PreparedStatement preparedStmt = conn.prepareStatement(query);
+			preparedStmt = conn.prepareStatement(query);
 			preparedStmt.setString(1, Constants.STATE_OPEN);
 			preparedStmt.setString(2, jsonIssue.get("issueId").getAsString());
 			preparedStmt.executeUpdate();
-			preparedStmt.close(); 
-			
-			DatabaseManager.disconnectFromDatabase(conn);
-			
-			
 		}
 		catch(Exception e)
 		{
@@ -1655,47 +1822,18 @@ System.out.println("Update tag");
 			setStatus(Status.SERVER_ERROR_INTERNAL);
 			repReturn = new StringRepresentation(e.getMessage());
 		}
+		finally {
+			try {
+				if(preparedStmt!=null)
+					preparedStmt.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
+		}
 		return repReturn;
 	}
 
-
-
-	private void updateMTBF(String issueId) {
-		
-		ResultSet component = null;
-		try {
-			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
-						
-			//query to find issues of the specified session
-			String query = "SELECT components.*, issues.cau_war FROM components, issues  WHERE issues.component=components.id_component AND issues.id_issue="+issueId;
-			Statement st = conn.createStatement();
-			component=st.executeQuery(query);
-			component.next();
-			if(component.getString("cau_war").compareTo("w")==0 && component.getString("state").compareTo("Broken")!=0)
-			{
-				System.out.println("Update mtbf for warning");
-				float mtbf=component.getFloat("life_time");
-				
-				if(component.getFloat("mtbf")>component.getFloat("life_time"))
-				{
-					query="UPDATE components SET mtbf = ? WHERE components.id_component = ?";
-					PreparedStatement preparedStmt = conn.prepareStatement(query);
-					preparedStmt.setFloat(1, mtbf);
-					preparedStmt.setString(2, component.getString("id_component"));
-					preparedStmt.executeUpdate();
-					preparedStmt.close(); 
-				}
-			}
-			DatabaseManager.disconnectFromDatabase(conn);
-		}catch (Exception e) {
-			e.printStackTrace();
-		}
-		finally {
-			if (component != null) try { component.close(); } catch(Exception e) {e.printStackTrace();}
-		}
-		
-	}
 
 	/**
 	 * This method delete a specified issue
@@ -1709,14 +1847,14 @@ System.out.println("Update tag");
 		Representation repReturn = null;
 		// Declare the JDBC objects.
 		Connection conn = null;
+		PreparedStatement preparedStmt=null;
+		ResultSet rs = null;
 		try{
 			JsonParser jsonParser = new JsonParser();
 			JsonObject jsonIssue = jsonParser.parse(entity.getText()).getAsJsonObject();
 			
 			//connection to db
 			conn=DatabaseManager.connectToDatabase();
-			PreparedStatement preparedStmt;
-			ResultSet rs = null;
 			
 			//query to find component of the issue with specified id
 			String query = "SELECT component FROM issues WHERE issues.id_issue="+jsonIssue.get("issueId").getAsString();
@@ -1734,26 +1872,33 @@ System.out.println("Update tag");
 					preparedStmt.setString(1, "Installed");
 					preparedStmt.setString(2, componentId);
 					preparedStmt.executeUpdate();
-					preparedStmt.close(); 
 				}
 			}
 			
 			//delete an issue
 			query="DELETE FROM issues WHERE issues.id_issue = ?";
-		
 			preparedStmt = conn.prepareStatement(query);
 			preparedStmt.setString(1, jsonIssue.get("issueId").getAsString());
 			preparedStmt.executeUpdate();
-			preparedStmt.close(); 
 		
 			System.out.println("Issue delete completed");
-			DatabaseManager.disconnectFromDatabase(conn);
 		}
 		catch(Exception e)
 		{
 			e.printStackTrace();
 			setStatus(Status.SERVER_ERROR_INTERNAL);
 			repReturn = new StringRepresentation(e.getMessage());
+		}
+		finally {
+			try {
+				if(rs!=null)
+					rs.close();
+				if(preparedStmt!=null)
+					preparedStmt.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -1775,6 +1920,7 @@ System.out.println("Update tag");
 		Representation repReturn = null;
 		// Declare the JDBC objects.
 		Connection conn = null;
+		PreparedStatement preparedStmt=null;
 		try{
 			JsonParser jsonParser = new JsonParser();
 			JsonObject jsonIssue = jsonParser.parse(entity.getText()).getAsJsonObject();
@@ -1785,20 +1931,28 @@ System.out.println("Update tag");
 			//upadate the description with new description where issue_id is the specified one
 			String query="UPDATE `osmose`.`issues` SET `description` = ? WHERE `issues`.`id_issue` = ?";
 		
-			PreparedStatement preparedStmt = conn.prepareStatement(query);
+			preparedStmt = conn.prepareStatement(query);
 			preparedStmt.setString(1, jsonIssue.get("description").getAsString());
 			preparedStmt.setString(2, jsonIssue.get("issueId").getAsString());
 			preparedStmt.executeUpdate();
 			preparedStmt.close(); 
 		
 			System.out.println("Update description completed");
-			DatabaseManager.disconnectFromDatabase(conn);
 		}
 		catch(Exception e)
 		{
 			e.printStackTrace();
 			setStatus(Status.SERVER_ERROR_INTERNAL);
 			repReturn = new StringRepresentation(e.getMessage());
+		}
+		finally {
+			try {
+				if(preparedStmt!=null)
+					preparedStmt.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -1816,7 +1970,10 @@ System.out.println("Update tag");
 		Representation repReturn = null;
 		// Declare the JDBC objects.
 		Connection conn = null;
+		PreparedStatement preparedStmt=null;
 		ResultSet rs = null;
+		ResultSet rs1 = null;
+		Statement st=null;
 		if (entity != null ) {
 			try {
 				JsonParser jsonParser = new JsonParser();
@@ -1849,7 +2006,7 @@ System.out.println("Update tag");
 			      		+ "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 			 
 			      // create the mysql insert preparedstatement
-			      PreparedStatement preparedStmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+			      preparedStmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
 			      
 			      preparedStmt.setNull(1, java.sql.Types.INTEGER);
 			      if(jsonIssue.get("description").getAsString()==null)
@@ -1924,7 +2081,8 @@ System.out.println("Update tag");
 			    	  {
 			    		  
 			    		  query="UPDATE sessions SET scheduled_start_time = '"+jsonIssue.get("raise_time").getAsString()+"' WHERE sessions.id_session = "+wrongSession;
-				    	  preparedStmt = conn.prepareStatement(query);
+				    	  preparedStmt.close();
+			    		  preparedStmt = conn.prepareStatement(query);
 				    	  preparedStmt.executeUpdate();
 				    	  preparedStmt.close();
 			    	  }
@@ -1932,8 +2090,7 @@ System.out.println("Update tag");
 			    	  //update the finish time with the time of the issue
 			    	  query="UPDATE sessions SET scheduled_finish_time = '"+jsonIssue.get("raise_time").getAsString()+"' WHERE sessions.id_session = "+jsonIssue.get("session").getAsString();
 			    	  preparedStmt = conn.prepareStatement(query);
-			    	  preparedStmt.executeUpdate();
-			    	  preparedStmt.close(); 			    	  
+			    	  preparedStmt.executeUpdate();		    	  
 			      }
 			      /*
 			      ObjectFactory objFactory=new ObjectFactory();
@@ -1992,13 +2149,9 @@ System.out.println("Update tag");
 			      Boolean outcome=osmoseService.startRecording(startRecordingParameters);
 			      System.out.println("Osmose Service Start Recording ---> "+outcome);
 			       */
-			      
-			      ResultSet rs1 = null;
-
-									
-						//query to find data of the specified simulator
+			      		//query to find data of the specified simulator
 						query = "SELECT simulators.model FROM simulators, sessions WHERE sessions.id_session="+jsonIssue.get("session").getAsString()+" AND sessions.simulator=simulators.id_simulator";
-						Statement st = conn.createStatement();
+						st = conn.createStatement();
 						rs1=st.executeQuery(query);
 						rs1.next();
 						final String model=rs1.getString("model");
@@ -2010,9 +2163,6 @@ System.out.println("Update tag");
 							    		  model); 
 						    }
 						}).start();
-						
-						
-			      DatabaseManager.disconnectFromDatabase(conn);
 			    	  
 			}catch (Exception e) {
 				
@@ -2021,7 +2171,19 @@ System.out.println("Update tag");
 				repReturn = new StringRepresentation(e.getMessage());
 			}
 			finally {
-				if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+				try {
+					if(rs!=null)
+						rs.close();
+					if(rs1!=null)
+						rs1.close();
+					if(preparedStmt!=null)
+						preparedStmt.close();
+					if(st!=null)
+						st.close();
+					DatabaseManager.disconnectFromDatabase(conn);
+				} 
+				catch(Exception e)
+				{e.printStackTrace();}
 			}
 		}
 		return repReturn;
@@ -2037,15 +2199,17 @@ System.out.println("Update tag");
 	private boolean issueIsInTheSession(String issueTime, String sessionId) {
 		
 		ResultSet rs = null;
+		Connection conn=null;
+		Statement st=null;
 		// Declare the JDBC objects.
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find session with specified id
 			String query = "SELECT * FROM sessions WHERE scheduled_finish_time>=STR_TO_DATE('"+issueTime+"','%Y.%m.%d %k:%i:%s') AND scheduled_start_time<=STR_TO_DATE('"+issueTime+"','%Y.%m.%d %k:%i:%s') AND id_session="+sessionId;
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			// Iterate through the data in the result set and display it.
@@ -2055,12 +2219,19 @@ System.out.println("Update tag");
 				DatabaseManager.disconnectFromDatabase(conn);
 				return true;
 			}
-			DatabaseManager.disconnectFromDatabase(conn);
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return false;
 		
@@ -2079,15 +2250,17 @@ System.out.println("Update tag");
 	private int issueInTheWrongSession(String issueTime, String sessionId) {
 		
 		ResultSet rs = null;
+		Connection conn=null;
+		Statement st = null;
 		// Declare the JDBC objects.
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find session with specified id
 			String query = "SELECT * FROM sessions WHERE scheduled_finish_time>=STR_TO_DATE('"+issueTime+"','%Y.%m.%d %k:%i:%s') AND scheduled_start_time<=STR_TO_DATE('"+issueTime+"','%Y.%m.%d %k:%i:%s') AND id_session<>"+sessionId;
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			// Iterate through the data in the result set and display it.
@@ -2098,12 +2271,19 @@ System.out.println("Update tag");
 				DatabaseManager.disconnectFromDatabase(conn);
 				return result;
 			}
-			DatabaseManager.disconnectFromDatabase(conn);
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return -1;
 		
@@ -2121,6 +2301,8 @@ System.out.println("Update tag");
 	private boolean addAudioCommentToAnIssue(String idIssue, String audioBase64, int index) {
 		
 		System.out.println("start audio insert");
+		Connection conn=null;
+		PreparedStatement preparedStmt=null;
 		if(idIssue!=null && audioBase64!=null)
 		{	        
 			try
@@ -2139,8 +2321,7 @@ System.out.println("Update tag");
 				osf.flush(); 
 				osf.close();
 				
-				Connection conn=DatabaseManager.connectToDatabase();
-				PreparedStatement preparedStmt;
+				conn=DatabaseManager.connectToDatabase();
 				String query = "INSERT INTO `audios`"
 			      		+ " (`id_audio`,"
 			      		+ " `audio_path`,"
@@ -2161,6 +2342,15 @@ System.out.println("Update tag");
 				e.printStackTrace();
 				setStatus(Status.SERVER_ERROR_INTERNAL);
 				return false;
+			}
+			finally {
+				try {
+					if(preparedStmt!=null)
+						preparedStmt.close();
+					DatabaseManager.disconnectFromDatabase(conn);
+				} 
+				catch(Exception e)
+				{e.printStackTrace();}
 			}
 		}
 		else
@@ -2183,6 +2373,9 @@ System.out.println("Update tag");
 	 */
 	private boolean addImageToAnIssue(String idIssue, String imageBase64, int index)
 	{
+		Connection conn=null;
+		PreparedStatement preparedStmt=null;
+		
 		if(idIssue!=null && imageBase64!=null)
 		{	        
 			try
@@ -2198,8 +2391,8 @@ System.out.println("Update tag");
 				osf.flush(); 
 				osf.close();
 				
-				Connection conn=DatabaseManager.connectToDatabase();
-				PreparedStatement preparedStmt;
+				conn=DatabaseManager.connectToDatabase();
+				
 				String query = "INSERT INTO `pictures`"
 			      		+ " (`id_picture`,"
 			      		+ " `image_path`,"
@@ -2221,6 +2414,15 @@ System.out.println("Update tag");
 				setStatus(Status.SERVER_ERROR_INTERNAL);
 				return false;
 			}
+			finally {
+				try {
+					if(preparedStmt!=null)
+						preparedStmt.close();
+					DatabaseManager.disconnectFromDatabase(conn);
+				} 
+				catch(Exception e)
+				{e.printStackTrace();}
+			}
 		}
 		else
 		{
@@ -2241,15 +2443,18 @@ System.out.println("Update tag");
 		
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn=null;
+		Statement st=null;
+		
 		// Declare the JDBC objects.
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issues of the specified session
 			String query = "SELECT issues.id_issue, issues.title, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name, tags.name AS tag_name FROM issues, users, systems, sessions, tags WHERE tags.id_tag=issues.tag AND sessions.id_session=issues.session AND users.id_user=issues.user_raiser AND systems.id_system=issues.system AND systems.name='"+systemName+"' AND sessions.simulator="+simId;
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			// Iterate through the data in the result set and display it.
@@ -2270,12 +2475,19 @@ System.out.println("Update tag");
 				issuesList.add(jsonIssue);				
 			}
 			repReturn = new JsonRepresentation(issuesList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 		
@@ -2294,14 +2506,15 @@ System.out.println("Update tag");
 		ResultSet rs = null;
 		ResultSet allSystemsRs = null;
 		Representation repReturn = null;
-
+		Connection conn=null;
+		Statement st = null;
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 			
 			String query="SELECT distinct systems.id_system, systems.name FROM systems, subsystems, components, simulators WHERE simulators.id_simulator="+simId+" AND components.simulator=simulators.id_simulator AND systems.id_system=subsystems.system AND subsystems.id_subsystem=components.subsystem";
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			allSystemsRs=st.executeQuery(query);
 			
 			ArrayList<ArrayList<String>> systems=new ArrayList<ArrayList<String>>();
@@ -2339,12 +2552,19 @@ System.out.println("Update tag");
 			}
 			
 			repReturn = new JsonRepresentation(systemList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 		
@@ -2360,12 +2580,15 @@ System.out.println("Update tag");
 		
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn=null;
+		Statement st=null;
+		
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 			JsonObject systemCounter = new JsonObject();
 			String query;
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			//numero di cautions aperte
 			query = "SELECT COUNT(*) AS counter FROM issues WHERE issues.cau_war='c' AND issues.state='open' AND issues.system="+systemId;
 			rs=st.executeQuery(query);
@@ -2409,12 +2632,19 @@ System.out.println("Update tag");
 			}
 			
 			repReturn = new JsonRepresentation(systemCounter.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 		
@@ -2430,12 +2660,14 @@ System.out.println("Update tag");
 		
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn=null;
+		Statement st=null;
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 			
 			String query;
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			query = "SELECT  systems.id_system, systems.name FROM systems WHERE systems.simulator="+simId+" AND systems.name='not_classified'";
 			rs=st.executeQuery(query);
 			rs.next();
@@ -2453,12 +2685,19 @@ System.out.println("Update tag");
 			}
 						
 			repReturn = new JsonRepresentation(systemCounter.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 		
@@ -2479,15 +2718,17 @@ System.out.println("Update tag");
 		
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn=null;
+		Statement st=null;
 		// Declare the JDBC objects.
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issues of the specified session
 			String query = "SELECT issues.id_issue, issues.title, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name, tags.name AS tag_name FROM issues, users, systems, sessions, tags WHERE tags.id_tag=issues.tag AND users.id_user=issues.user_raiser AND systems.id_system=issues.system AND sessions.id_session=issues.session AND sessions.simulator='"+simId+"' AND issues.component="+compId;
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			// Iterate through the data in the result set and display it.
@@ -2508,12 +2749,19 @@ System.out.println("Update tag");
 				issuesList.add(jsonIssue);				
 			}
 			repReturn = new JsonRepresentation(issuesList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 		
@@ -2530,15 +2778,17 @@ System.out.println("Update tag");
 		
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn=null;
+		Statement st=null;
 		// Declare the JDBC objects.
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issues of the specified session
 			String query = "SELECT issues.id_issue, issues.title, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name, tags.name AS tag_name FROM issues, users, systems, tags WHERE tags.id_tag=issues.tag AND users.id_user=issues.user_raiser AND systems.id_system=issues.system AND systems.name='"+systemName+"' AND issues.session="+sesId;
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			// Iterate through the data in the result set and display it.
@@ -2559,12 +2809,19 @@ System.out.println("Update tag");
 				issuesList.add(jsonIssue);				
 			}
 			repReturn = new JsonRepresentation(issuesList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -2580,15 +2837,17 @@ System.out.println("Update tag");
 		
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn=null;
+		Statement st=null;
 		// Declare the JDBC objects.
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issues of the specified session
 			String query = "SELECT issues.id_issue, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name FROM issues, users, systems WHERE users.id_user=issues.user_raiser AND systems.id_system=issues.system AND systems.name='"+systemName+"'";
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			// Iterate through the data in the result set and display it.
@@ -2607,12 +2866,19 @@ System.out.println("Update tag");
 				issuesList.add(jsonIssue);				
 			}
 			repReturn = new JsonRepresentation(issuesList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -2631,15 +2897,17 @@ System.out.println("Update tag");
 	{
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn=null;
+		Statement st=null;
 		// Declare the JDBC objects.
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issues of the specified session
 			String query = "SELECT issues.id_issue, issues.title, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name, tags.name AS tag_name FROM issues, users, systems, tags WHERE tags.id_tag=issues.tag AND users.id_user=issues.user_raiser AND systems.id_system=issues.system AND issues.session="+sesId;
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			// Iterate through the data in the result set and display it.
@@ -2660,13 +2928,20 @@ System.out.println("Update tag");
 				issuesList.add(jsonIssue);				
 			}
 			repReturn = new JsonRepresentation(issuesList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 			
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -2682,15 +2957,17 @@ System.out.println("Update tag");
 	{
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn=null;
+		Statement st=null;
 		// Declare the JDBC objects.
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issues of the specified session
 			String query = "SELECT issues.id_issue, issues.title, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state, users.first_name, users.last_name, systems.name, tags.name AS tag_name FROM issues, users, systems, sessions, tags WHERE tags.id_tag=issues.tag AND users.id_user=issues.user_raiser AND systems.id_system=issues.system AND sessions.id_session=issues.session AND sessions.simulator="+simId;
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			// Iterate through the data in the result set and display it.
@@ -2711,13 +2988,21 @@ System.out.println("Update tag");
 				issuesList.add(jsonIssue);				
 			}
 			repReturn = new JsonRepresentation(issuesList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
+			
 			
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -2734,15 +3019,17 @@ System.out.println("Update tag");
 	{
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn=null;
+		Statement st=null;
 		// Declare the JDBC objects.
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issues of the specified session
 			String query = "SELECT issues.id_issue, issues.raise_time, issues.hw_sw, issues.cau_war, issues.state FROM issues, sessions WHERE sessions.id_session=issues.session AND (issues.state='new' OR issues.state='described') AND sessions.simulator="+simId+" ORDER BY issues.raise_time DESC";
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			// Iterate through the data in the result set and display it.
@@ -2758,13 +3045,21 @@ System.out.println("Update tag");
 				issuesList.add(jsonIssue);				
 			}
 			repReturn = new JsonRepresentation(issuesList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
+			
 			
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -2778,15 +3073,17 @@ System.out.println("Update tag");
 		
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn=null;
+		Statement st=null;
 
 		try {
 			
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issue with specified id
 			String query = "SELECT distinct *, systems.name as system_name, systems.id_system, subsystems.id_subsystem, subsystems.name as subsystem_name, components.id_component, components.name as component_name, tags.name AS tag_name FROM issues, systems, subsystems, components, tags WHERE (tags.id_tag=issues.tag OR issues.tag is NULL) AND (subsystems.id_subsystem=issues.subsystem OR issues.subsystem is NULL) AND (components.id_component=issues.component OR issues.component is NULL) AND systems.id_system=issues.system AND issues.id_issue="+issueId+" GROUP BY issues.id_issue ";
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			// Iterate through the data in the result set and display it.
@@ -2844,15 +3141,21 @@ System.out.println("Update tag");
 				
 				issuesList.add(jsonIssue);				
 			}
-			repReturn = new JsonRepresentation(issuesList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
-			
+			repReturn = new JsonRepresentation(issuesList.toString());			
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -2869,14 +3172,16 @@ System.out.println("Update tag");
 		
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn=null;
+		Statement st=null;
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find path of the images the issue
 			String query = "SELECT pictures.image_path FROM pictures WHERE pictures.issue="+issueId;
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			JsonArray imagesList = new JsonArray();
@@ -2893,13 +3198,20 @@ System.out.println("Update tag");
 				imagesList.add(jsonImage);
 			}
 			repReturn = new JsonRepresentation(imagesList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -2943,6 +3255,7 @@ System.out.println("Update tag");
 		Representation repReturn = null;
 		// Declare the JDBC objects.
 		Connection conn = null;
+		PreparedStatement preparedStmt=null;
 		try{
 			JsonParser jsonParser = new JsonParser();
 			JsonObject jsonIssue = jsonParser.parse(entity.getText()).getAsJsonObject();
@@ -2953,7 +3266,7 @@ System.out.println("Update tag");
 			//upadate the description with new description where issue_id is the specified one
 			String query="UPDATE `osmose`.`issues` SET `type` = ?, `priority` = ?, `severity` = ?, `system` = ?, `subsystem` = ?, `component` = ?, `state` = ?, hw_sw = ?, cau_war = ?, title = ? WHERE `issues`.`id_issue` = ?";
 		
-			PreparedStatement preparedStmt = conn.prepareStatement(query);
+			preparedStmt = conn.prepareStatement(query);
 			
 			//setting paramenter of the query
 			if(jsonIssue.get("type").getAsString().compareTo(Constants.NONE)!=0)
@@ -3005,12 +3318,8 @@ System.out.println("Update tag");
 				preparedStmt.setString(11, jsonIssue.get("id_issue").getAsString());
 			else
 				preparedStmt.setNull(11, java.sql.Types.INTEGER);
-			
-			
-			
-			
+		
 			preparedStmt.executeUpdate();
-			preparedStmt.close(); 
 			
 			if(jsonIssue.get("component").getAsString().compareTo(Constants.NONE)!=0)
 			{
@@ -3018,13 +3327,21 @@ System.out.println("Update tag");
 			}
 		
 			System.out.println("Update info completed");
-			DatabaseManager.disconnectFromDatabase(conn);
 		}
 		catch(Exception e)
 		{
 			e.printStackTrace();
 			setStatus(Status.SERVER_ERROR_INTERNAL);
 			repReturn = new StringRepresentation(e.getMessage());
+		}
+		finally {
+			try {
+				if(preparedStmt!=null)
+					preparedStmt.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -3042,6 +3359,7 @@ System.out.println("Update tag");
 		
 		// Declare the JDBC objects.
 		Connection conn = null;
+		PreparedStatement preparedStmt=null;
 		try{
 						
 			//connection to db
@@ -3050,127 +3368,31 @@ System.out.println("Update tag");
 			//upadate the state of the component
 			String query="UPDATE `components` SET `component_state` = ? WHERE `components`.`id_component` = ?";
 		
-			PreparedStatement preparedStmt = conn.prepareStatement(query);
+			preparedStmt = conn.prepareStatement(query);
 			
 			//setting paramenter of the query
 			
 			preparedStmt.setString(1, state);
 			preparedStmt.setString(2, idComponent);
 			preparedStmt.executeUpdate();
-			preparedStmt.close(); 
 
-			DatabaseManager.disconnectFromDatabase(conn);
 		}
 		catch(Exception e)
 		{
 			e.printStackTrace();
 			setStatus(Status.SERVER_ERROR_INTERNAL);
 		}
-	}
-
-
-
-	private String getIdComponent(String compName) {
-		ResultSet rs = null;
-		String idSystem= null;
-
-		try {
-			
-			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
-						
-			//query to find id of the component
-			String query = "SELECT id_component FROM components WHERE components.name='"+compName+"'";
-			Statement st = conn.createStatement();
-			rs=st.executeQuery(query);
-			
-			// Iterate through the data in the result set and display it.
-			while (rs.next()) {
-				idSystem=rs.getString("id_component");					
-			}
-			DatabaseManager.disconnectFromDatabase(conn);
-			
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			try {
+				if(preparedStmt!=null)
+					preparedStmt.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
-		return idSystem;
 	}
 
-
-
-	private String getIdSubsystem(String subName) {
-		ResultSet rs = null;
-		String idSystem= null;
-
-		try {
-			
-			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
-						
-			//query to find id of the component
-			String query = "SELECT id_subsystem FROM subsystems WHERE subsystems.name='"+subName+"'";
-			Statement st = conn.createStatement();
-			rs=st.executeQuery(query);
-			
-			// Iterate through the data in the result set and display it.
-			while (rs.next()) {
-				idSystem=rs.getString("id_subsystem");					
-			}
-			DatabaseManager.disconnectFromDatabase(conn);
-			
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-		}
-		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
-		}
-		return idSystem;
-	}
-
-
-
-	private String getIdSystem(String systemName) {
-		
-		ResultSet rs = null;
-		String idSystem= null;
-
-		try {
-			
-			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
-						
-			//query to find issue with specified id
-			String query = "SELECT id_system FROM systems WHERE systems.name='"+systemName+"'";
-			Statement st = conn.createStatement();
-			rs=st.executeQuery(query);
-			
-			// Iterate through the data in the result set and display it.
-			while (rs.next()) {
-				idSystem=rs.getString("id_system");					
-			}
-			DatabaseManager.disconnectFromDatabase(conn);
-			
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-		}
-		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
-		}
-		return idSystem;
-		
-	}
-
-
-	
-	
-	
-	
 
 	/**
 	 * This method return a list of audio file of the specified issue in base64 in a json.
@@ -3182,13 +3404,15 @@ System.out.println("Update tag");
 		System.out.println("Get Issue Audio");	
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn=null;
+		Statement st=null;
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find path of the images the issue
 			String query = "SELECT audios.audio_path FROM audios WHERE audios.issue="+issueId;
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			JsonArray audioList = new JsonArray();
@@ -3210,13 +3434,20 @@ System.out.println("Update tag");
 				audioList.add(jsonAudio);
 			}
 			repReturn = new JsonRepresentation(audioList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -3257,16 +3488,18 @@ System.out.println("Update tag");
 		
 		ResultSet rs = null;
 		String outcome="none";
+		Connection conn=null;
+		Statement st=null;
 		// Declare the JDBC objects.
 		
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issues of the component of the simulator
 			String query = "SELECT issues.cau_war FROM issues WHERE (issues.state='open' OR issues.state='described') AND issues.component="+idComponent;
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			// Iterate through the data in the result set and display it.
@@ -3277,17 +3510,28 @@ System.out.println("Update tag");
 				}
 				else
 				{
+					if(rs!=null)
+						rs.close();
+					if(st!=null)
+						st.close();
+					DatabaseManager.disconnectFromDatabase(conn);
 					return "w";
 				}
 			}
-			
-			DatabaseManager.disconnectFromDatabase(conn);
 			
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		
 		return outcome;

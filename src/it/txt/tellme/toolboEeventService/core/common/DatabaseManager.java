@@ -1,5 +1,9 @@
 package it.txt.tellme.toolboEeventService.core.common;
+import java.io.File;
+import java.io.FileReader;
 import java.sql.*;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 /**
  * 
@@ -13,6 +17,11 @@ import java.sql.*;
 public class DatabaseManager {
 	
 	private static boolean threadStarted=false;
+	private static String url;
+	private static String dbName;
+	private static String driver;
+	private static String userName;
+	private static String password;
 	
 	
 	/**
@@ -25,16 +34,16 @@ public class DatabaseManager {
 	 * 
 	 */
 	 public static Connection connectToDatabase() {
-		 String url = "jdbc:mysql://localhost:3306/";
-		 String dbName = "osmose";
-		 String driver = "com.mysql.jdbc.Driver";
-		 String userName = "root";
-		 String password = "root";
+		 
 		 try 
 		 { 
 			 if(!threadStarted)
 			 {
 				 threadStarted=true;
+				 
+				 //database connection settings at the first access to the server
+				 setDatabaseConnectionSettings();
+				 
 				 //this object starts the thread which control if a session is finished and update the effective time of the
 				 //session.
 				 SessionCheckThread sessionCheckThread = new SessionCheckThread();
@@ -71,6 +80,48 @@ public class DatabaseManager {
 			e.printStackTrace();
 		}
 	 }
+
+
+	 /**
+	  * Get configuration data for the db of Osmose
+	  * 
+	  */
+	 public static boolean setDatabaseConnectionSettings()
+	 {
+		 JsonParser parser = new JsonParser();
+		 try {
+
+			 File f=new File(MailManager.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
+			 String p=f.toPath().getParent().getParent().toString();
+
+			 Object obj = parser.parse(new FileReader(
+					 p+"\\database-config.json"));
+
+			 JsonObject jsonObject = (JsonObject) obj;
+
+			 url = jsonObject.get("url").getAsString();
+			 dbName = jsonObject.get("db-name").getAsString();
+			 driver = jsonObject.get("driver").getAsString();
+			 userName = jsonObject.get("username").getAsString();
+			 password = jsonObject.get("password").getAsString();
+
+			 System.out.println("\n____________________________________");
+			 System.out.println("Database Settings");
+			 System.out.println("\n+  Database URL: "+ url);
+			 System.out.println("+  Database name: "+ dbName);
+			 System.out.println("+  Driver: "+ driver);
+			 System.out.println("+  Username: "+ userName);
+			 System.out.println("+  Password: "+ password);
+			 System.out.println("____________________________________\n");
+
+			 return true;
+
+		 } catch (Exception e) {
+			 e.printStackTrace();
+		 }
+		 return false;
+	 }
+	 
 	 
 	 
 	 

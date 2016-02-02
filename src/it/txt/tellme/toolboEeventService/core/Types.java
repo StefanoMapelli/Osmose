@@ -150,6 +150,7 @@ public class Types extends ServerResource{
 		// Declare the JDBC objects.
 		Connection conn = null;
 		ResultSet rs = null;
+		PreparedStatement preparedStmt=null;
 		if (entity != null ) {
 			try {
 				JsonParser jsonParser = new JsonParser();
@@ -168,7 +169,7 @@ public class Types extends ServerResource{
 			      		+ " (?,?,?)";
 			 
 			      // create the mysql insert preparedstatement
-			      PreparedStatement preparedStmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+			      preparedStmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
 			      
 			      preparedStmt.setNull(1, java.sql.Types.INTEGER);
 			      preparedStmt.setString(2, jsonIssue.get("name").getAsString());
@@ -192,7 +193,6 @@ public class Types extends ServerResource{
 			      JsonObject idNewTag = new JsonObject();
 			      idNewTag.addProperty("id_tag", rs.getString(1));
 			      repReturn = new JsonRepresentation(idNewTag.toString());
-			      DatabaseManager.disconnectFromDatabase(conn);
 			    	  
 			}catch (Exception e) {
 				
@@ -201,7 +201,15 @@ public class Types extends ServerResource{
 				repReturn = new StringRepresentation(e.getMessage());
 			}
 			finally {
-				if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+				try {
+					if(rs!=null)
+						rs.close();
+					if(preparedStmt!=null)
+						preparedStmt.close();
+					DatabaseManager.disconnectFromDatabase(conn);
+				} 
+				catch(Exception e)
+				{e.printStackTrace();}
 			}
 		}
 		return repReturn;
@@ -215,15 +223,17 @@ public class Types extends ServerResource{
 	private Representation getTagsObjects() {
 		ResultSet rs = null;
 		Representation repReturn = null;
-
+		Connection conn=null;
+		Statement st=null;
+		
 		try {
 			
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 
 			String query = "SELECT * FROM tags ORDER BY name";
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 
 			JsonArray tagList = new JsonArray();
@@ -235,14 +245,21 @@ public class Types extends ServerResource{
 				tagList.add(jsonTag);				
 			}
 			repReturn = new JsonRepresentation(tagList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 			
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -258,13 +275,15 @@ public class Types extends ServerResource{
 			String simId) {
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn=null;
+		Statement st=null;
 
 		try {	
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			String query = "SELECT components.name, components.id_component FROM subsystems, components WHERE components.simulator="+simId+" AND (components.component_state='Broken' OR components.component_state='Installed') AND subsystems.id_subsystem=components.subsystem AND subsystems.id_subsystem='"+subsystemId+"'";
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			// Iterate through the data in the result set and display it.
@@ -276,14 +295,20 @@ public class Types extends ServerResource{
 				componentList.add(jsonComponent);				
 			}
 			repReturn = new JsonRepresentation(componentList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
-			
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -298,13 +323,15 @@ public class Types extends ServerResource{
 		
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn=null;
+		Statement st=null;
 
 		try {	
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			String query = "SELECT components.name, components.id_component FROM subsystems, components WHERE components.simulator="+simId+" AND (components.component_state='Broken' OR components.component_state='Installed') AND subsystems.id_subsystem=components.subsystem AND subsystems.name='"+subsystemName+"'";
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			// Iterate through the data in the result set and display it.
@@ -316,14 +343,21 @@ public class Types extends ServerResource{
 				componentList.add(jsonComponent);				
 			}
 			repReturn = new JsonRepresentation(componentList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 			
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -337,14 +371,16 @@ public class Types extends ServerResource{
 		
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn=null;
+		Statement st=null;
 
 		try {	
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issue with specified id
 			String query = "SELECT subsystems.name, subsystems.id_subsystem FROM components, subsystems, systems WHERE components.subsystem=subsystems.id_subsystem AND components.simulator="+simId+" AND subsystems.system=systems.id_system AND systems.id_system="+systemId+" GROUP BY subsystems.name";
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			// Iterate through the data in the result set and display it.
@@ -358,14 +394,21 @@ public class Types extends ServerResource{
 				subsystemList.add(jsonSubsystem);				
 			}
 			repReturn = new JsonRepresentation(subsystemList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 			
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -379,14 +422,16 @@ public class Types extends ServerResource{
 		
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn=null;
+		Statement st=null;
 
 		try {	
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issue with specified id
 			String query = "SELECT subsystems.name, subsystems.id_subsystem FROM components, subsystems, systems WHERE components.subsystem=subsystems.id_subsystem AND components.simulator="+simId+" AND subsystems.system=systems.id_system AND systems.name='"+systemName+"' GROUP BY subsystems.name";
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			// Iterate through the data in the result set and display it.
@@ -398,14 +443,20 @@ public class Types extends ServerResource{
 				subsystemList.add(jsonSubsystem);				
 			}
 			repReturn = new JsonRepresentation(subsystemList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
-			
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -420,14 +471,16 @@ public class Types extends ServerResource{
 		
 		ResultSet rs = null;
 		Representation repReturn = null;
-
+		Connection conn=null;
+		Statement st=null;
+		
 		try {	
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issue with specified id
 			String query = "SELECT systems.name, systems.id_system FROM systems, subsystems, components WHERE systems.id_system=subsystems.system AND subsystems.id_subsystem=components.subsystem AND components.simulator="+simId+" GROUP BY systems.name";
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			// Iterate through the data in the result set and display it.
@@ -439,14 +492,20 @@ public class Types extends ServerResource{
 				issuesList.add(jsonIssue);				
 			}
 			repReturn = new JsonRepresentation(issuesList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
-			
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 		
@@ -461,14 +520,16 @@ public class Types extends ServerResource{
 	private Representation getTypeObjects() {
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn=null;
+		Statement st=null;
 
 		try {	
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issue with specified id
 			String query = "SELECT id_type FROM t_types";
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			// Iterate through the data in the result set and display it.
@@ -479,14 +540,20 @@ public class Types extends ServerResource{
 				issuesList.add(jsonIssue);				
 			}
 			repReturn = new JsonRepresentation(issuesList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
-			
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -500,15 +567,17 @@ public class Types extends ServerResource{
 		
 		ResultSet rs = null;
 		Representation repReturn = null;
-
+		Connection conn=null;
+		Statement st=null;
+		
 		try {
 			
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issue with specified id
 			String query = "SELECT id_priority FROM t_priorities ORDER BY description";
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			// Iterate through the data in the result set and display it.
@@ -519,14 +588,22 @@ public class Types extends ServerResource{
 				issuesList.add(jsonIssue);				
 			}
 			repReturn = new JsonRepresentation(issuesList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
+			
 			
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -540,15 +617,17 @@ public class Types extends ServerResource{
 		
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn=null;
+		Statement st=null;
 
 		try {
 			
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find issue with specified id
 			String query = "SELECT id_severity FROM t_severities ORDER BY description";
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			// Iterate through the data in the result set and display it.
@@ -559,14 +638,20 @@ public class Types extends ServerResource{
 				issuesList.add(jsonIssue);				
 			}
 			repReturn = new JsonRepresentation(issuesList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
-			
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}

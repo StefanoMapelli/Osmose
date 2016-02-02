@@ -4,6 +4,22 @@ import it.txt.tellme.toolboEeventService.core.common.Constants;
 import it.txt.tellme.toolboEeventService.core.common.DatabaseManager;
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -179,10 +195,12 @@ public class Sessions extends ServerResource{
 	private Representation insertSchedulingWithExcelFile(Representation entity, String simId) {
 		Representation repReturn = null;
 		ResultSet rs = null;
+		Connection conn=null;
+		PreparedStatement preparedStmt=null;
 		int numberOfLine=0;
 		int numberOfInsertedLine=0;
 		try {
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 			JsonParser jsonParser = new JsonParser();
 			JsonArray jsonSessionsList = jsonParser.parse(entity.getText()).getAsJsonArray();
 			try {
@@ -205,7 +223,7 @@ public class Sessions extends ServerResource{
 										+ " VALUES "
 										+ "(?,?,?,?,?)";
 
-								PreparedStatement preparedStmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+								preparedStmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
 
 								preparedStmt.setNull(1, java.sql.Types.INTEGER);
 								preparedStmt.setString(2, session.get(0).getAsString());
@@ -241,9 +259,19 @@ public class Sessions extends ServerResource{
 				}
 			} catch (Exception e) {
 				e.printStackTrace();
-			} finally {
-				DatabaseManager.disconnectFromDatabase(conn);
 			}
+			finally {
+				try {
+					if(rs!=null)
+						rs.close();
+					if(preparedStmt!=null)
+						preparedStmt.close();
+					DatabaseManager.disconnectFromDatabase(conn);
+				} 
+				catch(Exception e)
+				{e.printStackTrace();}
+			}
+				
 		} catch (Exception e) {
 			e.printStackTrace();
 			repReturn = new StringRepresentation(e.getMessage());
@@ -268,6 +296,7 @@ public class Sessions extends ServerResource{
 		// Declare the JDBC objects.
 		Connection conn = null;
 		ResultSet rs = null;
+		PreparedStatement preparedStmt=null;
 		if (entity != null ) {
 			try {
 				JsonParser jsonParser = new JsonParser();
@@ -288,7 +317,7 @@ public class Sessions extends ServerResource{
 			      		+ "(?,?,?,?,?)";
 			 
 			      // create the mysql insert preparedstatement
-			      PreparedStatement preparedStmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+			      preparedStmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
 			      
 			      preparedStmt.setNull(1, java.sql.Types.INTEGER);
 			      preparedStmt.setString(2, jsonSession.get("scheduled_start_time").getAsString());
@@ -320,7 +349,6 @@ public class Sessions extends ServerResource{
 			    	  repReturn = new StringRepresentation(rs.getString(1));
 			    	  
 			      }			      
-			      DatabaseManager.disconnectFromDatabase(conn);
 			    	  
 			}catch (Exception e) {
 				
@@ -329,7 +357,15 @@ public class Sessions extends ServerResource{
 				repReturn = new StringRepresentation(e.getMessage());
 			}
 			finally {
-				if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+				try {
+					if(rs!=null)
+						rs.close();
+					if(preparedStmt!=null)
+						preparedStmt.close();
+					DatabaseManager.disconnectFromDatabase(conn);
+				} 
+				catch(Exception e)
+				{e.printStackTrace();}
 			}
 		}
 		return repReturn;
@@ -342,6 +378,7 @@ public class Sessions extends ServerResource{
 		// Declare the JDBC objects.
 		Connection conn = null;
 		ResultSet rs = null;
+		PreparedStatement preparedStmt=null;
 		try {		
 			// Establish the connection to the db.
 			conn=DatabaseManager.connectToDatabase();
@@ -355,7 +392,7 @@ public class Sessions extends ServerResource{
 		      		+ "(?,?)";
 		 
 		      // create the mysql insert preparedstatement
-		      PreparedStatement preparedStmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+		      preparedStmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
 		      
 		      preparedStmt.setString(1, sessionId);
 		      preparedStmt.setString(2, userId);
@@ -367,7 +404,6 @@ public class Sessions extends ServerResource{
 		      
 		      rs=preparedStmt.getGeneratedKeys();
 		      rs.next();
-		      DatabaseManager.disconnectFromDatabase(conn);
 		    	  
 		}catch (Exception e) {
 			
@@ -375,7 +411,15 @@ public class Sessions extends ServerResource{
 			setStatus(Status.SERVER_ERROR_INTERNAL);
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {e.printStackTrace();}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(preparedStmt!=null)
+					preparedStmt.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 
 			
@@ -393,15 +437,17 @@ public class Sessions extends ServerResource{
 		
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn=null;
+		Statement st=null;
 		// Declare the JDBC objects.
 		
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find session with specified id
 			String query = "SELECT * FROM users, partecipants, sessions WHERE users.id_user=partecipants.id_user AND users.id_user=partecipants.id_user and sessions.id_session=partecipants.id_session and sessions.simulator="+simId+" AND DATE(sessions.scheduled_start_time)>=DATE('"+startDate+"') AND DATE(sessions.scheduled_finish_time)<=DATE('"+finishDate+"') ORDER BY sessions.scheduled_start_time ";
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			
@@ -452,12 +498,19 @@ public class Sessions extends ServerResource{
 				sessionList.add(jsonSession);
 			}
 			repReturn = new JsonRepresentation(sessionList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 		
@@ -472,26 +525,35 @@ public class Sessions extends ServerResource{
 	private int getNumberOfIssuesOfSession(String sesId)
 	{
 		ResultSet rs = null;
+		Connection conn=null;
+		Statement st=null;
 		int numberOfIssues=0;
 		// Declare the JDBC objects.
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find session with specified id
 			String query = "SELECT count(*) as number_of_issues FROM issues WHERE issues.session="+sesId;
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			rs.next();
 			numberOfIssues=rs.getInt("number_of_issues");
-			DatabaseManager.disconnectFromDatabase(conn);
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return numberOfIssues;
 	}
@@ -505,25 +567,34 @@ public class Sessions extends ServerResource{
 	{
 		ResultSet rs = null;
 		int numberOfIssues=0;
+		Connection conn=null;
+		Statement st=null;
 		// Declare the JDBC objects.
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find session with specified id
 			String query = "SELECT count(*) as number_of_warnings FROM issues WHERE issues.cau_war='w' AND issues.session="+sesId;
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			rs.next();
 			numberOfIssues=rs.getInt("number_of_warnings");
-			DatabaseManager.disconnectFromDatabase(conn);
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return numberOfIssues;
 	}
@@ -537,26 +608,36 @@ public class Sessions extends ServerResource{
 	private int getNumberOfCautionsOfSession(String sesId)
 	{
 		ResultSet rs = null;
+		Connection conn=null;
+		Statement st=null;
+		
 		int numberOfIssues=0;
 		// Declare the JDBC objects.
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find session with specified id
 			String query = "SELECT count(*) as number_of_cautions FROM issues WHERE issues.cau_war='c' AND issues.session="+sesId;
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			rs.next();
 			numberOfIssues=rs.getInt("number_of_cautions");
-			DatabaseManager.disconnectFromDatabase(conn);
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return numberOfIssues;
 	}
@@ -569,15 +650,17 @@ public class Sessions extends ServerResource{
 	private Representation getAllSessionsData() {
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn=null;
+		Statement st=null;
 		// Declare the JDBC objects.
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find session with specified id
 			String query = "SELECT sessions.id_session, sessions.scheduled_start_time, sessions.scheduled_finish_time FROM sessions ORDER BY sessions.scheduled_start_time";
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			// Iterate through the data in the result set and display it.
@@ -590,12 +673,19 @@ public class Sessions extends ServerResource{
 				sessionList.add(jsonSession);				
 			}
 			repReturn = new JsonRepresentation(sessionList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -613,15 +703,17 @@ public class Sessions extends ServerResource{
 	private Representation getAllSessionOfUser(String userId, String simId, String startDate, String finishDate) {
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn=null;
+		Statement st=null;
 		// Declare the JDBC objects.
 		
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find session with specified id
 			String query = "SELECT * FROM users, partecipants, sessions WHERE users.id_user="+userId+" AND users.id_user=partecipants.id_user AND users.id_user=partecipants.id_user and sessions.id_session=partecipants.id_session and sessions.simulator="+simId+" AND DATE(sessions.scheduled_start_time)>=DATE('"+startDate+"') AND DATE(sessions.scheduled_finish_time)<=DATE('"+finishDate+"') ORDER BY sessions.scheduled_start_time ";
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			
@@ -644,14 +736,21 @@ public class Sessions extends ServerResource{
 				sessionList.add(jsonSession);
 			}
 			repReturn = new JsonRepresentation(sessionList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 		}
 		catch (Exception e) 
 		{
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -668,15 +767,17 @@ public class Sessions extends ServerResource{
 	{
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn=null;
+		Statement st=null;
 		// Declare the JDBC objects.
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find session with specified id
 			String query = "SELECT * FROM sessions WHERE id_session="+sesId;
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			// Iterate through the data in the result set and display it.
@@ -694,12 +795,19 @@ public class Sessions extends ServerResource{
 				sessionList.add(jsonSession);				
 			}
 			repReturn = new JsonRepresentation(sessionList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -717,15 +825,17 @@ public class Sessions extends ServerResource{
 	{
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn=null;
+		Statement st=null;
 		// Declare the JDBC objects.
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find session with specified id
 			String query = "SELECT * FROM sessions, users, partecipants, t_roles, simulators WHERE sessions.id_session="+sesId+" and sessions.id_session=partecipants.id_session and sessions.simulator=simulators.id_simulator and users.id_user=partecipants.id_user GROUP BY users.id_user";
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			// Iterate through the data in the result set and display it.
@@ -767,13 +877,20 @@ public class Sessions extends ServerResource{
 			}
 			sessionList.add(jsonSession);
 			repReturn = new JsonRepresentation(sessionList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 			
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -789,15 +906,17 @@ public class Sessions extends ServerResource{
 
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn=null;
+		Statement st=null;
 		// Declare the JDBC objects.
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find session with specified id
 			String query = "SELECT sessions.id_session FROM sessions, partecipants WHERE partecipants.id_session=sessions.id_session AND partecipants.id_user="+userId+" AND simulator="+simId+" AND STR_TO_DATE('"+date+"','%Y-%m-%d %k:%i:%s') BETWEEN scheduled_start_time AND scheduled_finish_time";
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			// Iterate through the data in the result set and display it.
@@ -808,15 +927,21 @@ public class Sessions extends ServerResource{
 				sessionList.add(jsonSession);				
 			}
 			repReturn = new JsonRepresentation(sessionList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
-		
 	}
 
 	
@@ -831,15 +956,17 @@ public class Sessions extends ServerResource{
 		
 		ResultSet rs = null;
 		Representation repReturn = null;
+		Connection conn=null;
+		Statement st=null;
 		// Declare the JDBC objects.
 
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find session with specified id
 			String query = "SELECT sessions.id_session FROM sessions, partecipants WHERE partecipants.id_session=sessions.id_session AND partecipants.id_user="+userId+" AND sessions.simulator="+simId+" AND sessions.scheduled_finish_time<=STR_TO_DATE('"+date+"','%Y-%m-%d %k:%i:%s') AND sessions.scheduled_finish_time in (SELECT max(scheduled_finish_time) FROM sessions, partecipants WHERE partecipants.id_session=sessions.id_session AND partecipants.id_user="+userId+" AND sessions.simulator="+simId+" AND sessions.scheduled_finish_time<=STR_TO_DATE('"+date+"','%Y-%m-%d %k:%i:%s'))";
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
 			// Iterate through the data in the result set and display it.
@@ -850,12 +977,19 @@ public class Sessions extends ServerResource{
 				sessionList.add(jsonSession);				
 			}
 			repReturn = new JsonRepresentation(sessionList.toString());
-			DatabaseManager.disconnectFromDatabase(conn);
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs != null) try { rs.close(); } catch(Exception e) {}
+			try {
+				if(rs!=null)
+					rs.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 		
@@ -876,15 +1010,18 @@ public class Sessions extends ServerResource{
 		ResultSet rs1 = null;
 		ResultSet rs2 = null;
 		Representation repReturn = null;
+		Connection conn=null;
+		Statement st=null;
+		
 		// Declare the JDBC objects.
 		
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find session with specified id
 			String query = "SELECT sessions.id_session FROM sessions WHERE sessions.simulator="+simId+" AND (sessions.scheduled_start_time>=STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND sessions.scheduled_start_time<=STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s')) OR (sessions.scheduled_finish_time>=STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND sessions.scheduled_finish_time<=STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s')) OR (sessions.scheduled_start_time<=STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND sessions.scheduled_finish_time>=STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s')) OR (sessions.scheduled_start_time=STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND sessions.scheduled_finish_time=STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s'))";
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs1=st.executeQuery(query);
 			
 			query = "SELECT maintenance.id_maintenance FROM maintenance WHERE maintenance.simulator="+simId+" AND (maintenance.scheduled_start_time>=STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND maintenance.scheduled_start_time<=STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s')) OR (maintenance.scheduled_finish_time>=STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND maintenance.scheduled_finish_time<=STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s')) OR (maintenance.scheduled_start_time<=STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND maintenance.scheduled_finish_time>=STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s')) OR (maintenance.scheduled_start_time=STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND maintenance.scheduled_finish_time=STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s'))";
@@ -908,15 +1045,22 @@ public class Sessions extends ServerResource{
 				jsonSession.addProperty("id_session", rs2.getInt("id_maintenance"));
 				sessionList.add(jsonSession);
 			}
-			
-		
 		repReturn = new JsonRepresentation(sessionList.toString());
-		DatabaseManager.disconnectFromDatabase(conn);
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs1 != null) try { rs1.close(); } catch(Exception e) {}
+			try {
+				if(rs2!=null)
+					rs2.close();
+				if(rs1!=null)
+					rs1.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -936,16 +1080,18 @@ public class Sessions extends ServerResource{
 		
 		ResultSet rs1 = null;
 		ResultSet rs2 = null;
+		Connection conn=null;
+		Statement st=null;
 		Representation repReturn = null;
 		// Declare the JDBC objects.
 		
 		try {
 			//connection to db
-			Connection conn=DatabaseManager.connectToDatabase();
+			conn=DatabaseManager.connectToDatabase();
 			
 			//sessions
 			String query = "SELECT sessions.id_session FROM sessions WHERE sessions.simulator="+simId+" AND (sessions.scheduled_start_time>STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND sessions.scheduled_start_time<STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s')) OR (sessions.scheduled_finish_time>STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND sessions.scheduled_finish_time<STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s')) OR (sessions.scheduled_start_time<=STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND sessions.scheduled_finish_time>=STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s')) OR (sessions.scheduled_start_time=STR_TO_DATE('"+startDate+"','%Y-%m-%d %k:%i:%s') AND sessions.scheduled_finish_time=STR_TO_DATE('"+finishDate+"','%Y-%m-%d %k:%i:%s'))";
-			Statement st = conn.createStatement();
+			st = conn.createStatement();
 			rs1=st.executeQuery(query);
 			
 			//maintenances
@@ -972,12 +1118,21 @@ public class Sessions extends ServerResource{
 			
 		
 		repReturn = new JsonRepresentation(sessionList.toString());
-		DatabaseManager.disconnectFromDatabase(conn);
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
-			if (rs1 != null) try { rs1.close(); } catch(Exception e) {}
+			try {
+				if(rs2!=null)
+					rs2.close();
+				if(rs1!=null)
+					rs1.close();
+				if(st!=null)
+					st.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		return repReturn;
 	}
@@ -994,6 +1149,8 @@ public class Sessions extends ServerResource{
 		String sessionId;
 		String endTime;
 		JsonParser jsonParser = new JsonParser();
+		Connection conn=null;
+		PreparedStatement preparedStmt=null;
 		try 
 		{
 			JsonObject jsonSession = jsonParser.parse(entity.getText()).getAsJsonObject();
@@ -1001,15 +1158,12 @@ public class Sessions extends ServerResource{
 			endTime=jsonSession.get("end_time").getAsString();
 			try {
 				//connection to db
-				Connection conn=DatabaseManager.connectToDatabase();
+				conn=DatabaseManager.connectToDatabase();
 							
 				//query to find issues of the specified session
 				String query="UPDATE sessions SET scheduled_finish_time = '"+endTime+"' WHERE sessions.id_session = "+sessionId;
-				PreparedStatement preparedStmt = conn.prepareStatement(query);
+				preparedStmt = conn.prepareStatement(query);
 				preparedStmt.executeUpdate();
-				preparedStmt.close(); 
-
-				DatabaseManager.disconnectFromDatabase(conn);
 			}catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -1017,6 +1171,15 @@ public class Sessions extends ServerResource{
 		catch (Exception e) 
 		{
 			e.printStackTrace();
+		}
+		finally {
+			try {
+				if(preparedStmt!=null)
+					preparedStmt.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			} 
+			catch(Exception e)
+			{e.printStackTrace();}
 		}
 		
 		return repReturn;
