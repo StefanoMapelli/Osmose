@@ -53,7 +53,8 @@ public class DatabaseManager {
 				 MailManager.setMailServerSettings();
 			 }
 			 Class.forName(driver).newInstance();
-			 Connection conn = DriverManager.getConnection(url+dbName,userName,password);
+			 Connection conn= DriverManager.getConnection(url+dbName+userName+password);
+			 //databaseName=AdventureWorks;user=UserName;password=*****
 			 return conn;
 		 } 
 		 catch (Exception e) 
