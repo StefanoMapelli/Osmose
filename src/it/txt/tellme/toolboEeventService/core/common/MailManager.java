@@ -38,85 +38,89 @@ public class MailManager {
 	 * @param simulatorModel 
 	 * @return
 	 */
-	public static boolean sendMailToAdministrator(String dateTime, String hw_sw, String cau_war, String simulatorModel)
+	public static boolean sendMailToAdministrator(String dateTime, String hw_sw, String cau_war, String simulatorModel, String user, String userMail)
 	{
 
 	      // Sender's email ID needs to be mentioned
 	      String from = mailSenderAddress;
+	      try {
+	    	  //SMTP Server Settings
+	    	  Properties props = new Properties();
+	    	  props.put("mail.smtp.host", mailSmtpHost);
+	    	  props.put("mail.smtp.socketFactory.port", mailSmtpSocketFactoryPort);
+	    	  props.put("mail.smtp.socketFactory.class",mailSmtpSocketFactoryClass);
+	    	  props.put("mail.smtp.auth", mailSmtpAuth);
+	    	  props.put("mail.smtp.port", mailSmtpPort);
 
-	      //SMTP Server Settings
-	      Properties props = new Properties();
-			props.put("mail.smtp.host", mailSmtpHost);
-			props.put("mail.smtp.socketFactory.port", mailSmtpSocketFactoryPort);
-			props.put("mail.smtp.socketFactory.class",mailSmtpSocketFactoryClass);
-			props.put("mail.smtp.auth", mailSmtpAuth);
-			props.put("mail.smtp.port", mailSmtpPort);
+	    	  Session session = Session.getDefaultInstance(props,
+	    			  new javax.mail.Authenticator() {
+	    		  protected PasswordAuthentication getPasswordAuthentication() {
+	    			  return new PasswordAuthentication(mailUsername,mailPassword);
+	    		  }
+	    	  });
 
-			Session session = Session.getDefaultInstance(props,
-					new javax.mail.Authenticator() {
-						protected PasswordAuthentication getPasswordAuthentication() {
-							return new PasswordAuthentication(mailUsername,mailPassword);
-						}
-					});
-			try {
 
-				//Message creation
-				for(ArrayList<String> address : mailTo)
-				{
-					Message message = new MimeMessage(session);
-					message.setFrom(new InternetAddress(from));
-					message.setRecipients(Message.RecipientType.TO,
-							InternetAddress.parse(address.get(0)));
-					message.setSubject("FS-HUMS REPORT");
-					String htmlMail;
-					
-					if(hw_sw.compareTo("h")==0)
-					{
-						hw_sw="Hardware";
-					}
-					else
-					{
-						hw_sw="Software";
-					}
-					
-					if(cau_war.compareTo("c")==0)
-					{
-						cau_war="Caution";
-					}
-					else
-					{
-						cau_war="Warning";
-					}
-					
-					htmlMail=
-							"<h3>FS-HUMS REPORT: Issue Raised</h3>"
-							+ "<table style='width:60%'>"
-							+ "<tr><td>Simulator:</td><td>"+simulatorModel+"</td></tr>"
-							+ "<tr><td>Datetime:</td><td>"+dateTime+"</td></tr>"
-							+ "<tr><td>Type:</td><td>"+cau_war+"</td></tr>"
-							+ "<tr><td>Hardware / Software:</td><td>"+hw_sw+"</td></tr>"
-							+ "</table>"
-							+ "<p>For further information about the issue login to FS-HUMS</p>"
-							+ "<p></br>*** This is an automatically generated email, please do not reply ***</p>"
-							+ "<p>You received this email because you are in the list of recipients for the issues reporting."
-							+ "</br>If you are not interested in this kind of reporting please contact the system manager of the FS-HUMS.</p>";
-					message.setContent(htmlMail, "text/html");
+	    	  //Message creation
+	    	  for(ArrayList<String> address : mailTo)
+	    	  {
+	    		  Message message = new MimeMessage(session);
+	    		  message.setFrom(new InternetAddress(from));
+	    		  message.setRecipients(Message.RecipientType.TO,
+	    				  InternetAddress.parse(address.get(0)));
+	    		  message.setSubject("FS-HUMS REPORT");
+	    		  String htmlMail;
 
-					//Send Mail
-					Transport.send(message);
-				}
-				System.out.println("Mail sent");
-				return true;
+	    		  if(hw_sw.compareTo("h")==0)
+	    		  {
+	    			  hw_sw="Hardware";
+	    		  }
+	    		  else
+	    		  {
+	    			  hw_sw="Software";
+	    		  }
 
-			} catch (MessagingException e) {
-				System.out.println(e);
-			}
-	    
-		return false;
+	    		  if(cau_war.compareTo("c")==0)
+	    		  {
+	    			  cau_war="Caution";
+	    		  }
+	    		  else
+	    		  {
+	    			  cau_war="Warning";
+	    		  }
+
+	    		  htmlMail=
+	    				  "<h3>FS-HUMS REPORT: Issue Raised</h3>"
+	    						  + "<table style='width:60%'>"
+	    						  + "<tr><td>Simulator:</td><td>"+simulatorModel+"</td></tr>"
+	    						  + "<tr><td>Datetime:</td><td>"+dateTime+"</td></tr>"
+	    						  + "<tr><td>User:</td><td>"+user+"</td></tr>"
+	    						  + "<tr><td>User Mail Address:</td><td>"+userMail+"</td></tr>"
+	    						  + "<tr><td>Type:</td><td>"+cau_war+"</td></tr>"
+	    						  + "<tr><td>Hardware / Software:</td><td>"+hw_sw+"</td></tr>"
+	    						  + "<tr><td></td><td></td></tr>"
+	    						  + "</table>"
+	    						  + "<p>For further information about the issue login to FS-HUMS</p>"
+	    						  + "<p></br>*** This is an automatically generated email, please do not reply ***</p>"
+	    						  + "<p>You received this email because you are in the list of recipients for the issues reporting."
+	    						  + "</br>If you are not interested in this kind of reporting please contact the system manager of the FS-HUMS.</p>";
+	    		  message.setContent(htmlMail, "text/html");
+
+	    		  //Send Mail
+	    		  Transport.send(message);
+	    	  }
+	    	  System.out.println("Mail sent");
+	    	  return true;
+
+	      } catch (MessagingException e) {
+	    	  e.printStackTrace();
+	    	  System.out.println("Mail not sent");
+	      }
+
+	      return false;
 	}
 
-	
-	
+
+
 	/**
 	 * This method reads the file of the server SMTP configuration that is in the grandparent folder of the executable .jar
 	 * Check to have the mail-config.json in the correct folder
@@ -125,24 +129,24 @@ public class MailManager {
 	public static boolean setMailServerSettings()
 	{
 		JsonParser parser = new JsonParser();
-        try {
-        	
-        	File f=new File(MailManager.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
-        	String p=f.toPath().getParent().getParent().toString();
-        	
-            Object obj = parser.parse(new FileReader(
-                    p+"\\mail-config.json"));
-            
-            JsonObject jsonObject = (JsonObject) obj;
- 
-            mailSmtpHost = jsonObject.get("mail-smtp-host").getAsString();
-            mailSmtpSocketFactoryPort = jsonObject.get("mail-smtp-socketFactory-port").getAsString();
-            mailSmtpSocketFactoryClass = jsonObject.get("mail-smtp-socketFactory-class").getAsString();
-            mailSmtpAuth = jsonObject.get("mail-smtp-auth").getAsString();
-            mailSmtpPort = jsonObject.get("mail-smtp-port").getAsString();
-            mailSenderAddress = jsonObject.get("mail-sender-address").getAsString();
-            mailUsername = jsonObject.get("mail-username").getAsString();
-            mailPassword=jsonObject.get("mail-password").getAsString();
+		try {
+
+			File f=new File(MailManager.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
+			String p=f.toPath().getParent().getParent().toString();
+
+			Object obj = parser.parse(new FileReader(
+					p+"\\mail-config.json"));
+
+			JsonObject jsonObject = (JsonObject) obj;
+
+			mailSmtpHost = jsonObject.get("mail-smtp-host").getAsString();
+			mailSmtpSocketFactoryPort = jsonObject.get("mail-smtp-socketFactory-port").getAsString();
+			mailSmtpSocketFactoryClass = jsonObject.get("mail-smtp-socketFactory-class").getAsString();
+			mailSmtpAuth = jsonObject.get("mail-smtp-auth").getAsString();
+			mailSmtpPort = jsonObject.get("mail-smtp-port").getAsString();
+			mailSenderAddress = jsonObject.get("mail-sender-address").getAsString();
+			mailUsername = jsonObject.get("mail-username").getAsString();
+			mailPassword=jsonObject.get("mail-password").getAsString();
             
             System.out.println("\n____________________________________");
             System.out.println("Server SMTP Settings");

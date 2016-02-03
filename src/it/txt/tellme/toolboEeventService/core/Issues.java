@@ -1973,6 +1973,7 @@ System.out.println("Update tag");
 		PreparedStatement preparedStmt=null;
 		ResultSet rs = null;
 		ResultSet rs1 = null;
+		ResultSet rs2 = null;
 		Statement st=null;
 		if (entity != null ) {
 			try {
@@ -2155,12 +2156,20 @@ System.out.println("Update tag");
 						rs1=st.executeQuery(query);
 						rs1.next();
 						final String model=rs1.getString("model");
+						
+						query = "SELECT users.first_name, users.last_name, users.mail_address FROM users WHERE users.id_user="+jsonIssue.get("id_user").getAsString();
+						rs2=st.executeQuery(query);
+						rs2.next();
+						final String user=rs2.getString("first_name")+" "+rs2.getString("last_name");
+						final String userMail=rs2.getString("mail_address");
 						new Thread(new Runnable() {
 						    public void run() {
 						    	MailManager.sendMailToAdministrator(jsonIssue.get("raise_time").getAsString(),
 							    		  jsonIssue.get("hw_sw").getAsString(),
 							    		  jsonIssue.get("cau_war").getAsString(),
-							    		  model); 
+							    		  model,
+							    		  user,
+							    		  userMail); 
 						    }
 						}).start();
 			    	  
@@ -2176,6 +2185,8 @@ System.out.println("Update tag");
 						rs.close();
 					if(rs1!=null)
 						rs1.close();
+					if(rs2!=null)
+						rs2.close();
 					if(preparedStmt!=null)
 						preparedStmt.close();
 					if(st!=null)
