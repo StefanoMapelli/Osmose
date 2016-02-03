@@ -38,7 +38,7 @@ public class MailManager {
 	 * @param simulatorModel 
 	 * @return
 	 */
-	public static boolean sendMailToAdministrator(String dateTime, String hw_sw, String cau_war, String simulatorModel, String user, String userMail)
+	public static boolean sendMailToAdministrator(String dateTime, String hw_sw, String cau_war, String simulatorModel, String user, String userMail, String issueId)
 	{
 
 	      // Sender's email ID needs to be mentioned
@@ -95,6 +95,7 @@ public class MailManager {
 	    						  + "<tr><td>Datetime:</td><td>"+dateTime+"</td></tr>"
 	    						  + "<tr><td>User:</td><td>"+user+"</td></tr>"
 	    						  + "<tr><td>User Mail Address:</td><td>"+userMail+"</td></tr>"
+	    						  + "<tr><td>Issue ID:</td><td>"+issueId+"</td></tr>"
 	    						  + "<tr><td>Type:</td><td>"+cau_war+"</td></tr>"
 	    						  + "<tr><td>Hardware / Software:</td><td>"+hw_sw+"</td></tr>"
 	    						  + "<tr><td></td><td></td></tr>"

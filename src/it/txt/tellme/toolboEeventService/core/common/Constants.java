@@ -69,8 +69,10 @@ public class Constants {
 		public static final String USERNAME = "username";
 		public static final String PASSWORD = "password";
 		
-		public static final String DEFAULT_INSTRUCTOR_ID = "7";
-		public static final String DEFAULT_PILOT_ID = "8";
+		public static final String DEFAULT_MAINTATINER = "1";
+		public static final String DEFAULT_INSTRUCTOR_ID = "2";
+		public static final String DEFAULT_PILOT_ID = "3";
+		
 		public static final String DEFAULT_TAG = "1";
 		
 		public static final String SYSTEM_OPEN_COUNTERS = "systemOpenCounters";

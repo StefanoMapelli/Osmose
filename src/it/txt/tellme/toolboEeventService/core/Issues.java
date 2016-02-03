@@ -1369,6 +1369,12 @@ public class Issues extends ServerResource{
 			rs=st.executeQuery(query);
 			
 			JsonObject counter = new JsonObject();
+			
+			counter.addProperty("number_hw_cau", 0);
+			counter.addProperty("number_hw_war", 0);
+			counter.addProperty("number_sw_cau", 0);
+			counter.addProperty("number_sw_war", 0);
+			
 			while (rs.next()) {
 				if(rs.getString("hw_sw").compareTo("h")==0)
 				{
@@ -2043,6 +2049,8 @@ System.out.println("Update tag");
 			      rs=preparedStmt.getGeneratedKeys();
 			      rs.next();
 			      
+			      final String issueIdNumber=rs.getString(1);
+			      
 			      JsonObject idIssue = new JsonObject();
 			      idIssue.addProperty("id_issue", rs.getString(1));
 			      repReturn = new JsonRepresentation(idIssue.toString());
@@ -2169,7 +2177,8 @@ System.out.println("Update tag");
 							    		  jsonIssue.get("cau_war").getAsString(),
 							    		  model,
 							    		  user,
-							    		  userMail); 
+							    		  userMail,
+							    		  issueIdNumber); 
 						    }
 						}).start();
 			    	  
