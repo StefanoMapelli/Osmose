@@ -97,6 +97,7 @@ public class Constants {
 		public static final String CREATE_COMPONENT = "createComponent";
 		public static final String GET_COMPONENTSV2 = "getComponentsv2";
 		public static final String SUBSYSTEM_ID = "subsystemId";
+		public static final String CHANGE_ALERT_THRESHOLD = "changeAlertThreshold";
 		
 		
 		

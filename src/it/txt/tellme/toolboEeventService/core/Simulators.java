@@ -196,7 +196,7 @@ public class Simulators extends ServerResource{
 			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find data of the components of the simulator
-			String query = "SELECT systems.name as system_name, systems.id_system, subsystems.id_subsystem, subsystems.name as subsystem_name, components.name, components.id_component, components.component_state, components.life_time, components.mtbf, components.hw_sw FROM systems, subsystems, components WHERE systems.id_system=subsystems.system AND subsystems.id_subsystem=components.subsystem AND (components.component_state='Installed' OR components.component_state='Broken') AND components.simulator="+simId;
+			String query = "SELECT systems.name as system_name, systems.id_system, subsystems.id_subsystem, subsystems.name as subsystem_name, components.name, components.id_component, components.component_state, components.life_time, components.expected_life_time, components.mtbur, components.hw_sw, components.alert_threshold FROM systems, subsystems, components WHERE systems.id_system=subsystems.system AND subsystems.id_subsystem=components.subsystem AND (components.component_state='Installed' OR components.component_state='Broken') AND components.simulator="+simId+" ORDER BY components.name";
 			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
@@ -214,14 +214,29 @@ public class Simulators extends ServerResource{
 				jsonComponent.addProperty("subsystem_id", rs.getString("id_subsystem"));
 				//if the life time is near to expected life time we put alert as state
 				double life=Float.parseFloat(rs.getString("life_time"));
-				double mtbf=Float.parseFloat(rs.getString("mtbf"));
 				
 				if(rs.getString("component_state").compareTo("Broken")==0)
 					jsonComponent.addProperty("state", rs.getString("component_state"));
-				else if(life>mtbf && rs.getString("hw_sw").compareTo("h")==0)
-					jsonComponent.addProperty("state", "alert");
-				else
-					jsonComponent.addProperty("state", rs.getString("component_state"));
+				else if(rs.getString("mtbur")!=null)
+				{
+					double mtbur=Float.parseFloat(rs.getString("mtbur"));
+					double alertThreshold=Float.parseFloat(rs.getString("alert_threshold"));
+					
+					if(life>mtbur-alertThreshold && rs.getString("hw_sw").compareTo("h")==0)
+						jsonComponent.addProperty("state", "alert");
+					else
+						jsonComponent.addProperty("state", rs.getString("component_state"));
+				}
+				else if(rs.getString("mtbur")==null)
+				{
+					double workTime=Float.parseFloat(rs.getString("expected_life_time"));
+					double alertThreshold=Float.parseFloat(rs.getString("alert_threshold"));
+					
+					if(life>workTime-alertThreshold && rs.getString("hw_sw").compareTo("h")==0)
+						jsonComponent.addProperty("state", "alert");
+					else
+						jsonComponent.addProperty("state", rs.getString("component_state"));
+				}
 				
 				String issue=checkIssueForComponent(rs.getString("id_component"));
 				jsonComponent.addProperty("issue", issue);

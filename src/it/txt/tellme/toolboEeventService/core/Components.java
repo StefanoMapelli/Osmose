@@ -72,6 +72,11 @@ public class Components extends ServerResource{
 				repReturn = createComponent(entity);
 				System.out.println("Create component");
 			}
+			else if(queryMap.get(Constants.COMPONENT_OPERATION).compareTo(Constants.CHANGE_ALERT_THRESHOLD)==0)
+			{
+				repReturn = changeThresholdAlertComponent(entity);
+				System.out.println("Create component");
+			}
 			else	
 			{
 				setStatus(Status.CLIENT_ERROR_BAD_REQUEST);
@@ -82,6 +87,47 @@ public class Components extends ServerResource{
 			setStatus(Status.CLIENT_ERROR_BAD_REQUEST);
 		}
 		return repReturn;
+	}
+
+	
+	/**This method updates the value of the alert threshold of a component
+	 * @param entity
+	 * @return
+	 */
+	private Representation changeThresholdAlertComponent(Representation entity) {
+		
+		Representation repReturn = null;
+		JsonParser jsonParser = new JsonParser();
+		PreparedStatement preparedStmt=null;
+		Connection conn = null;
+		try 
+		{
+			JsonObject json = jsonParser.parse(entity.getText()).getAsJsonObject();
+			try {
+				//connection to db
+				conn=DatabaseManager.connectToDatabase();
+				//get the lifetime			
+				String query="UPDATE components SET alert_threshold=? WHERE id_component = "+json.get("componentId").getAsString();
+				
+				preparedStmt = conn.prepareStatement(query);
+				preparedStmt.setString(1, json.get("alertThreshold").getAsString());
+				preparedStmt.executeUpdate();
+			}catch (Exception e) {
+				e.printStackTrace();
+			}
+			finally
+			{
+				if(preparedStmt!=null)
+					preparedStmt.close();
+				DatabaseManager.disconnectFromDatabase(conn);
+			}
+		} 
+		catch (Exception e) 
+		{
+			e.printStackTrace();
+		}
+		return repReturn;
+		
 	}
 
 	/**This method creates a new component in the db
@@ -278,7 +324,7 @@ public class Components extends ServerResource{
 				//connection to db
 				conn=DatabaseManager.connectToDatabase();
 							
-				String query = "SELECT components.*, systems.id_system, subsystems.id_subsystem, systems.name as system_name, subsystems.name as subsystem_name FROM components, systems, subsystems WHERE components.simulator="+simId+" AND components.hw_sw='h' AND systems.id_system=subsystems.system AND components.subsystem=subsystems.id_subsystem AND components.life_time>components.mtbur";
+				String query = "SELECT components.*, systems.id_system, subsystems.id_subsystem, systems.name as system_name, subsystems.name as subsystem_name FROM components, systems, subsystems WHERE components.simulator="+simId+" AND components.hw_sw='h' AND systems.id_system=subsystems.system AND components.subsystem=subsystems.id_subsystem AND components.life_time>components.mtbur-components.alert_threshold";
 				st = conn.createStatement();
 				rs=st.executeQuery(query);				
 				
@@ -357,6 +403,18 @@ public class Components extends ServerResource{
 					component.addProperty("mtbf", rs.getString("mtbf"));
 					component.addProperty("mtbr", rs.getString("mtbr"));
 					component.addProperty("mtbur", rs.getString("mtbur"));
+					component.addProperty("worktime_mtbf", rs.getFloat("life_time")*100/rs.getFloat("expected_life_time"));
+					
+					if(rs.getString("mtbur")!=null)
+					{
+						component.addProperty("worktime_mtbur", (rs.getFloat("life_time")*100/rs.getFloat("mtbur"))+" ");
+						component.addProperty("mtbur_mtbf", (rs.getFloat("mtbur")*100/rs.getFloat("expected_life_time"))+" ");	
+					}
+					else
+					{
+						component.addProperty("worktime_mtbur", "N/A");
+						component.addProperty("mtbur_mtbf", "N/A");	
+					}
 					component.addProperty("producer", rs.getString("manufacturer"));
 					component.addProperty("part_number", rs.getString("part_number"));
 					component.addProperty("serial_number", rs.getString("serial_number"));
@@ -367,6 +425,8 @@ public class Components extends ServerResource{
 					component.addProperty("hw_sw", rs.getString("hw_sw"));
 					component.addProperty("manufacturer_mtbf", rs.getString("manufacturer_mtbf"));
 					component.addProperty("manufacturer_mtbr", rs.getString("manufacturer_mtbr"));
+					component.addProperty("alert_threshold", rs.getString("alert_threshold"));
+					
 					
 					componentsList.add(component);				
 				}
