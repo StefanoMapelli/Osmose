@@ -164,9 +164,10 @@ public class Components extends ServerResource{
 			      		+ " `manufacturer_mtbf`,"
 			      		+ " `manufacturer_mtbr`,"
 			      		+ " `manufacturer`,"
-			      		+ " `component_state`)"
+			      		+ " `component_state`,"
+			      		+ " `alert_threshold`)"
 			      		+ " VALUES "
-			      		+ "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+			      		+ "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 			 
 			    // create the mysql insert preparedstatement
 			    preparedStmtInsert = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
@@ -187,6 +188,7 @@ public class Components extends ServerResource{
 			    preparedStmtInsert.setString(14,jsonSession.get("manufacturerMTBR").getAsString());
 			    preparedStmtInsert.setString(15,jsonSession.get("manufacturer").getAsString());
 			    preparedStmtInsert.setString(16,"Installed");
+			    preparedStmtInsert.setString(17,"0");
 			    preparedStmtInsert.execute();
 			}catch (Exception e) {
 				e.printStackTrace();
@@ -233,7 +235,7 @@ public class Components extends ServerResource{
 				Statement st = conn.createStatement();
 				rs=st.executeQuery(query);
 				rs.next();
-				float workTime=rs.getFloat("life_time");
+				float workTime=jsonSession.get("oldWorkTime").getAsFloat();
 				
 				//insert new MTBUR
 				query = "INSERT INTO `mtbur_history`"

@@ -1980,6 +1980,7 @@ System.out.println("Update tag");
 		ResultSet rs = null;
 		ResultSet rs1 = null;
 		ResultSet rs2 = null;
+		ResultSet rs3 =null;
 		Statement st=null;
 		if (entity != null ) {
 			try {
@@ -1988,6 +1989,7 @@ System.out.println("Update tag");
 				
 				// Establish the connection to the db.
 				conn=DatabaseManager.connectToDatabase();
+				st = conn.createStatement();
 				
 				// Create and execute an SQL statement that returns some data.
 				// the mysql insert statement
@@ -2030,7 +2032,12 @@ System.out.println("Update tag");
 			      preparedStmt.setString(6, jsonIssue.get("hw_sw").getAsString());
 			      preparedStmt.setString(7, jsonIssue.get("cau_war").getAsString());
 			      preparedStmt.setString(8, "new");
-			      preparedStmt.setString(9, Constants.NOT_CLASSIFIED);
+			      
+			      query="SELECT systems.id_system FROM systems WHERE systems.name='"+Constants.NOT_CLASSIFIED+"' AND systems.simulator="+jsonIssue.get("simulator").getAsString();
+			      rs3=st.executeQuery(query);
+				  rs3.next();
+			      preparedStmt.setString(9, rs3.getString("id_system"));
+			      
 			      preparedStmt.setNull(10, java.sql.Types.INTEGER);
 			      preparedStmt.setNull(11, java.sql.Types.INTEGER);
 			      preparedStmt.setString(12, Constants.TYPE_GENERIC);
@@ -2160,7 +2167,6 @@ System.out.println("Update tag");
 			       */
 			      		//query to find data of the specified simulator
 						query = "SELECT simulators.model FROM simulators, sessions WHERE sessions.id_session="+jsonIssue.get("session").getAsString()+" AND sessions.simulator=simulators.id_simulator";
-						st = conn.createStatement();
 						rs1=st.executeQuery(query);
 						rs1.next();
 						final String model=rs1.getString("model");
@@ -2196,6 +2202,8 @@ System.out.println("Update tag");
 						rs1.close();
 					if(rs2!=null)
 						rs2.close();
+					if(rs3!=null)
+						rs3.close();
 					if(preparedStmt!=null)
 						preparedStmt.close();
 					if(st!=null)

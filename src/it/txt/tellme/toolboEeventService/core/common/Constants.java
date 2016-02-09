@@ -53,7 +53,7 @@ public class Constants {
 	    public static final String SESSION_DATA_INIT="sessionData";
 	    
 	    //id of the not classified system
-	    public static final String NOT_CLASSIFIED = "7";
+	    public static final String NOT_CLASSIFIED = "not_classified";
 	    public static final String PILOT_ROLE="pilot";
 		public static final String INSTRUCTOR_ROLE="instructor";
 		public static final String NONE="none";

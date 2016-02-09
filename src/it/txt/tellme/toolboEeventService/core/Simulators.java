@@ -196,7 +196,7 @@ public class Simulators extends ServerResource{
 			conn=DatabaseManager.connectToDatabase();
 						
 			//query to find data of the components of the simulator
-			String query = "SELECT systems.name as system_name, systems.id_system, subsystems.id_subsystem, subsystems.name as subsystem_name, components.name, components.id_component, components.component_state, components.life_time, components.expected_life_time, components.mtbur, components.hw_sw, components.alert_threshold FROM systems, subsystems, components WHERE systems.id_system=subsystems.system AND subsystems.id_subsystem=components.subsystem AND (components.component_state='Installed' OR components.component_state='Broken') AND components.simulator="+simId+" ORDER BY components.name";
+			String query = "SELECT systems.name as system_name, systems.id_system, subsystems.id_subsystem, subsystems.name as subsystem_name, components.name, components.id_component, components.component_state, components.life_time, components.expected_life_time, components.mtbur, components.hw_sw, components.alert_threshold FROM systems, subsystems, components WHERE systems.id_system=subsystems.system AND subsystems.id_subsystem=components.subsystem AND (components.component_state='Installed' OR components.component_state='Broken') AND components.simulator="+simId+" ORDER BY systems.name, subsystems.name, components.name";
 			st = conn.createStatement();
 			rs=st.executeQuery(query);
 			
